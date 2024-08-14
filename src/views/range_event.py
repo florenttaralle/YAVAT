@@ -1,7 +1,9 @@
-from PyQt5.QtCore import pyqtSignal, QRectF, Qt, QPointF
-from PyQt5.QtWidgets import QGraphicsItem, QGraphicsObject, QGraphicsSceneHoverEvent, QGraphicsSceneMouseEvent
+from PyQt5.QtCore import QRectF, Qt, QPointF
+from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSceneHoverEvent, QGraphicsSceneMouseEvent
 from PyQt5.QtGui import QPen, QBrush, QPainter, QPainterPath
 from enum import Enum, auto
+
+from .event import EventView
 from .color_specifications import RangeEventColorSpecification
 from src.models.range_event import RangeEventModel, EventModel
 
@@ -24,33 +26,19 @@ class Action(Enum):
         return self != Action.NoAction
 
     
-class RangeEventView(QGraphicsObject):
-    double_click = pyqtSignal(object, int, QGraphicsSceneMouseEvent)
-    right_click  = pyqtSignal(object, int, QGraphicsSceneMouseEvent)
-    
+class RangeEventView(EventView):
     def __init__(self, 
             model: RangeEventModel,
             y: float, h: float, handleWidth: float=.1, cornerRadius: float=.1,
             colors: RangeEventColorSpecification|None = None, parent: QGraphicsItem|None=None):
-        QGraphicsObject.__init__(self, parent)
-        self._model             = model
-        self._y                 = y
-        self._h                 = h
         self._handleWidth       = handleWidth
         self._corner_radius     = cornerRadius
         self._colors:           RangeEventColorSpecification = colors if colors else RangeEventColorSpecification()
-        self._rect:             QRectF = None
         self._action:           Action = Action.NoAction
         self._pressX:           float | None = None
-        self.setAcceptHoverEvents(True)
-        self.setFlag(QGraphicsItem.ItemIsSelectable)
-        self.setSelected(True)
-        self._update_geometry()
-        self._update_tooltip()
+        EventView.__init__(self, model, y, h, parent)
         self._model.first_changed.connect(self.onModelFirstChanged)
         self._model.last_changed.connect(self.onModelLastChanged)
-        self._model.prv_event_changed.connect(self.onPrvEventChanged)
-        self._model.prv_event_changed.connect(self.onNxtEventChanged)
         
     def _leftHandleX0(self):    return self._model.first - self._handleWidth / 2
     def _leftHandleX1(self):    return self._model.first + self._handleWidth / 2
@@ -78,24 +66,6 @@ class RangeEventView(QGraphicsObject):
         self._update_tooltip()
         self.update()
 
-    def onPrvEventChanged(self, event: EventModel|int):
-        pass
-
-    def onNxtEventChanged(self, event: EventModel|int):
-        pass
-
-    def _leftLimit(self) -> int:
-        if isinstance(self._model.prv_event, EventModel):
-            return self._model.prv_event.last + 1
-        else:
-            return self._model.prv_event
-    
-    def _rightLimit(self) -> int:
-        if isinstance(self._model.nxt_event, EventModel):
-            return self._model.nxt_event.first - 1
-        else:
-            return self._model.nxt_event
-
     def _set_action(self, value: Action):
         if value != self._action:
             self._action = value
@@ -109,9 +79,6 @@ class RangeEventView(QGraphicsObject):
                 case Action.MovingLeftHandle | Action.MovingRightHandle:
                     self.setCursor(Qt.SplitHCursor)
             self.update()
-
-    def boundingRect(self) -> QRectF:
-        return self._rect
 
     def _check_hover_handle(self, pos: QPointF):
         if (pos.x() < self._leftHandleX0()) or (pos.x() > self._rightHandleX1()):
@@ -132,10 +99,6 @@ class RangeEventView(QGraphicsObject):
     def hoverLeaveEvent(self, event: QGraphicsSceneHoverEvent):
         self._set_action(Action.NoAction)
 
-    def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent):
-        closestFrameId = round(event.pos().x())
-        self.double_click.emit(self, closestFrameId, event)
-        
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         match event.button():
             case Qt.MouseButton.LeftButton:
@@ -147,9 +110,7 @@ class RangeEventView(QGraphicsObject):
                         self._set_action(Action.MovingLeftHandle)
                     case Action.HoveringRightHandle:
                         self._set_action(Action.MovingRightHandle)
-            case Qt.MouseButton.RightButton:
-                closestFrameId = round(event.pos().x())
-                self.right_click.emit(self, closestFrameId, event)
+                event.accept()
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         match self._action:
@@ -170,7 +131,7 @@ class RangeEventView(QGraphicsObject):
             case Action.MovingRightHandle:
                 closestFrameId = round(event.pos().x())
                 if (closestFrameId <= self._rightLimit()) and (closestFrameId > self._model.first):
-                    self._model.last = closestFrameId            
+                    self._model.last = closestFrameId
 
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
         self._check_hover_handle(event.pos())

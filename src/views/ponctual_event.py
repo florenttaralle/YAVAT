@@ -1,7 +1,8 @@
-from PyQt5.QtCore import pyqtSignal, QRectF, Qt
-from PyQt5.QtWidgets import QGraphicsItem, QGraphicsObject, QGraphicsSceneHoverEvent, QGraphicsSceneMouseEvent
+from PyQt5.QtCore import QRectF, Qt
+from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSceneHoverEvent, QGraphicsSceneMouseEvent
 from PyQt5.QtGui import QPen, QBrush, QPainter, QPainterPath
 from enum import Enum, auto
+from .event import EventView
 from .color_specifications import EventColorSpecification
 from src.models.ponctual_event import PonctualEventModel, EventModel
 
@@ -10,34 +11,20 @@ class Action(Enum):
     Hovering            = auto()
     Moving              = auto()
     
-class PonctualEventView(QGraphicsObject):
-    double_click = pyqtSignal(object, int, QGraphicsSceneMouseEvent)
-    right_click  = pyqtSignal(object, int, QGraphicsSceneMouseEvent)
-    
+class PonctualEventView(EventView):
     def __init__(self, 
             model: PonctualEventModel,
             y: float, h: float, width: float=.4, cornerRadius: float=.1,
             colors: EventColorSpecification|None = None, 
             parent: QGraphicsItem|None=None):
         
-        QGraphicsObject.__init__(self, parent)
-        self._model             = model
-        self._y                 = y
-        self._h                 = h
         self._w                 = width
         self._corner_radius     = cornerRadius
         self._colors:           EventColorSpecification = colors if colors else EventColorSpecification()
-        self._rect:             QRectF = None
         self._action:           Action = Action.NoAction
         self._pressX:           float | None = None
-        self.setAcceptHoverEvents(True)
-        self.setFlag(QGraphicsItem.ItemIsSelectable)
-        self.setSelected(True)
-        self._update_geometry()
-        self._update_tooltip()
+        EventView.__init__(self, model, y, h, parent)
         self._model.frame_id_changed.connect(self.onModelFrameIdChanged)
-        self._model.prv_event_changed.connect(self.onPrvEventChanged)
-        self._model.prv_event_changed.connect(self.onNxtEventChanged)
 
     def _x0(self):  return self._model.frame_id - self._w / 2
     def _x1(self):  return self._model.frame_id + self._w / 2
@@ -57,24 +44,6 @@ class PonctualEventView(QGraphicsObject):
         self._update_tooltip
         self.update()
 
-    def onPrvEventChanged(self, event: EventModel|int):
-        pass
-
-    def onNxtEventChanged(self, event: EventModel|int):
-        pass
-
-    def _leftLimit(self) -> int:
-        if isinstance(self._model.prv_event, EventModel):
-            return self._model.prv_event.last + 1
-        else:
-            return self._model.prv_event
-    
-    def _rightLimit(self) -> int:
-        if isinstance(self._model.nxt_event, EventModel):
-            return self._model.nxt_event.first - 1
-        else:
-            return self._model.nxt_event
-    
     def _set_action(self, value: Action):
         if value != self._action:
             self._action = value
@@ -84,9 +53,6 @@ class PonctualEventView(QGraphicsObject):
                 case Action.Moving:
                     self.setCursor(Qt.ClosedHandCursor)
             self.update()
-
-    def boundingRect(self) -> QRectF:
-        return self._rect
 
     def hoverEnterEvent(self, event: QGraphicsSceneHoverEvent):
         self._set_action(Action.Hovering)
@@ -99,14 +65,8 @@ class PonctualEventView(QGraphicsObject):
             case Qt.MouseButton.LeftButton:
                 self._set_action(Action.Moving)
                 self._pressX = event.pos().x()
-            case Qt.MouseButton.RightButton:
-                closestFrameId = round(event.pos().x())
-                self.right_click.emit(self, closestFrameId, event)
+                event.accept()
         
-    def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent):
-        closestFrameId = round(event.pos().x())
-        self.double_click.emit(self, closestFrameId, event)
-
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         if self._action == Action.Moving:
             offsetX         = event.pos().x() - self._pressX

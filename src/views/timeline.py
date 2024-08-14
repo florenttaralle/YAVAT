@@ -1,9 +1,12 @@
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGraphicsSceneMouseEvent, QMenu, QAction
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QMenu
+from PyQt5.QtGui import QCursor, QContextMenuEvent
+from functools import partial
+import pyqt5_fugueicons as icons
+
 from src.models.timeline import TimeLineModel, EventModel
 from src.views.range_event import RangeEventView, RangeEventModel
 from src.views.ponctual_event import PonctualEventView, PonctualEventModel
-from src.graph import Graph, QMouseEvent
+from src.graph import Graph
 
 class TimeLineHeaderView(QWidget):
     def __init__(self, timeline: TimeLineModel, parent: QWidget|None = None):
@@ -29,7 +32,7 @@ class TimeLineView(QWidget):
         self.layout().addWidget(self._graph)
         self._event_views = [self._event_view_factory(event) for event in timeline]
 
-        self._graph.click.connect(self.onGraphClick)
+        self._graph.context_menu.connect(self.onGraphContextMenu)
         self._timeline.event_added.connect(self.onTimelineEventAdded)
         self._timeline.event_removed.connect(self.onTimelineEventRemoved) 
                
@@ -39,12 +42,15 @@ class TimeLineView(QWidget):
         else:
             view = PonctualEventView(event, 1, 1, .4, .1)
         self._graph.addItem(view)
-        view.right_click.connect(self.onEventViewRightClick)
+        view.double_click.connect(self.onEventViewDoubleClick)
         return view
+
+    def onEventViewDoubleClick(self, view, frame_id, event):
+        print(f"onEventViewDoubleClick {view.model}")
 
     def _event_to_view(self, event: EventModel):
         for view in self._event_views:
-            if view._model == event:
+            if view.model == event:
                 return view
         raise ValueError()
 
@@ -57,42 +63,44 @@ class TimeLineView(QWidget):
         self._graph.removeItem(view)
         self._event_views.remove(view)
 
-    def onEventViewRightClick(self, view, frame_id: int, event: QGraphicsSceneMouseEvent):
+    def onGraphContextMenu(self, frame_id: float, event: QContextMenuEvent):
+        frame_id = round(frame_id)
         menu = QMenu()
-        
-        action = menu.addAction("Delete")
-        def onDeleteAction(_): self._timeline.rem(view._model)
-        action.triggered.connect(onDeleteAction)
-        
-        if isinstance(view._model, PonctualEventModel):
-            action = menu.addAction("Convert To Range Event")
-            action.setEnabled(self._timeline.at_frame_id(view._model.frame_id + 1) is None)
-            def onConvertToRangeAction(_): 
-                self._timeline.rem(view._model)
-                self._timeline.add_range(view._model.frame_id, view._model.frame_id+1, view._model.label)
-            action.triggered.connect(onConvertToRangeAction)
+        model = self._timeline.at_frame_id(frame_id)
+        if model is not None:        
+            action = menu.addAction(icons.icon('minus-circle'), "Delete This Event")
+            action.triggered.connect(partial(self.onMenuDeleteEvent, model))
+            if isinstance(model, PonctualEventModel):
+                action = menu.addAction(icons.icon('arrow-out'), "Convert To Range Event From Here")
+                action.setEnabled(self._timeline.at_frame_id(model.frame_id + 1) is None)
+                action.triggered.connect(partial(self.onMenuConvertToRange, model))
+            else:
+                action = menu.addAction(icons.icon('arrow-in'), "Convert To Ponctual Event Here")
+                action.triggered.connect(partial(self.onMenuConvertToPonctual, model, frame_id))
         else:
-            action = menu.addAction("Convert To Ponctual Event")
-            def onConvertToPonctualAction(_): 
-                self._timeline.rem(view._model)
-                self._timeline.add_ponctual(frame_id, view._model.label)
-            action.triggered.connect(onConvertToPonctualAction)
-            
-        menu.exec(event.screenPos())
-        
-    def onGraphClick(self, frame_id: float, event: QMouseEvent):
-        if event.button() == Qt.MouseButton.RightButton:
-            menu = QMenu()
-
-            action = menu.addAction("New Range Event")
+            action = menu.addAction(icons.icon('plus-circle'), "New Range Event From Here")
             action.setEnabled(self._timeline.can_add_range(frame_id, frame_id + 1))
-            def onNewRangeEvent(_): self._timeline.add_range(frame_id, frame_id+1)
-            action.triggered.connect(onNewRangeEvent)
-
-            action = menu.addAction("New Ponctual Event")
+            action.triggered.connect(partial(self.onMenuCreateRange, frame_id))
+            action = menu.addAction(icons.icon('plus-circle'), "New Ponctual Event Here")
             action.setEnabled(self._timeline.can_add_ponctual(frame_id))
-            def onNewPonctualEvent(_):  self._timeline.add_ponctual(frame_id)
-            action.triggered.connect(onNewPonctualEvent)
+            action.triggered.connect(partial(self.onMenuCreatePonctual, frame_id))        
+        menu.exec(QCursor.pos())
 
-            menu.exec(event.globalPos())
-            
+    def onMenuCreateRange(self, frame_id):
+        self._timeline.add_range(frame_id, frame_id+1)
+
+    def onMenuCreatePonctual(self, frame_id):
+        self._timeline.add_ponctual(frame_id)
+
+    def onMenuDeleteEvent(self, event):
+        self._timeline.rem(event)
+    
+    def onMenuConvertToRange(self, event):
+        self._timeline.rem(event)
+        self._timeline.add_range(event.frame_id, event.frame_id+1, event.label)
+    
+    def onMenuConvertToPonctual(self, event, frame_id):
+        self._timeline.rem(event)
+        self._timeline.add_ponctual(frame_id, event.label)
+    
+    
