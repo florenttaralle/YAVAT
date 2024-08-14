@@ -1,6 +1,6 @@
-from PyQt5.QtCore import QRectF, Qt
-from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSceneHoverEvent, QGraphicsSceneMouseEvent
-from PyQt5.QtGui import QPen, QBrush, QPainter, QPainterPath
+from PyQt6.QtCore import QRectF, Qt
+from PyQt6.QtWidgets import QGraphicsItem, QGraphicsSceneHoverEvent, QGraphicsSceneMouseEvent
+from PyQt6.QtGui import QPen, QBrush, QPainter, QPainterPath
 from enum import Enum, auto
 from .event import EventView
 from .color_specifications import EventColorSpecification
@@ -49,9 +49,9 @@ class PonctualEventView(EventView):
             self._action = value
             match value:
                 case Action.NoAction | Action.Hovering :
-                    self.setCursor(Qt.OpenHandCursor)
+                    self.setCursor(Qt.CursorShape.OpenHandCursor)
                 case Action.Moving:
-                    self.setCursor(Qt.ClosedHandCursor)
+                    self.setCursor(Qt.CursorShape.ClosedHandCursor)
             self.update()
 
     def hoverEnterEvent(self, event: QGraphicsSceneHoverEvent):

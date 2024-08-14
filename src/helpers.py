@@ -1,4 +1,4 @@
-from PyQt5.QtMultimedia import QMediaPlayer
+from PyQt6.QtMultimedia import QMediaPlayer
 
 def media_status_str(status: int):
     match status:

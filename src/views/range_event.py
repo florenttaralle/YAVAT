@@ -1,6 +1,6 @@
-from PyQt5.QtCore import QRectF, Qt, QPointF
-from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSceneHoverEvent, QGraphicsSceneMouseEvent
-from PyQt5.QtGui import QPen, QBrush, QPainter, QPainterPath
+from PyQt6.QtCore import QRectF, Qt, QPointF
+from PyQt6.QtWidgets import QGraphicsItem, QGraphicsSceneHoverEvent, QGraphicsSceneMouseEvent
+from PyQt6.QtGui import QPen, QBrush, QPainter, QPainterPath
 from enum import Enum, auto
 
 from .event import EventView
@@ -71,13 +71,13 @@ class RangeEventView(EventView):
             self._action = value
             match value:
                 case Action.NoAction | Action.Hovering :
-                    self.setCursor(Qt.OpenHandCursor)
+                    self.setCursor(Qt.CursorShape.OpenHandCursor)
                 case Action.HoveringLeftHandle | Action.HoveringRightHandle:   
-                    self.setCursor(Qt.SizeHorCursor)
+                    self.setCursor(Qt.CursorShape.SizeHorCursor)
                 case Action.Moving:
-                    self.setCursor(Qt.ClosedHandCursor)
+                    self.setCursor(Qt.CursorShape.ClosedHandCursor)
                 case Action.MovingLeftHandle | Action.MovingRightHandle:
-                    self.setCursor(Qt.SplitHCursor)
+                    self.setCursor(Qt.CursorShape.SplitHCursor)
             self.update()
 
     def _check_hover_handle(self, pos: QPointF):

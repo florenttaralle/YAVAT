@@ -1,6 +1,4 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from typing import List
+from PyQt6.QtWidgets import QApplication, QMainWindow
 # #######################################################################
 from src.models.timeline import TimeLineModel
 from src.views.timeline import TimeLineView

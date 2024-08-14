@@ -1,7 +1,7 @@
 import pyqtgraph as pg
-from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QMouseEvent, QWheelEvent, QContextMenuEvent
-from PyQt5.QtWidgets import QGraphicsView
+from PyQt6.QtCore import pyqtSignal, QPointF, QPoint
+from PyQt6.QtGui import QMouseEvent, QWheelEvent, QContextMenuEvent, QColorConstants, QPen
+from PyQt6.QtWidgets import QGraphicsView
 
 class Graph(pg.PlotWidget):
     wheel_up        = pyqtSignal(QWheelEvent)
@@ -13,17 +13,40 @@ class Graph(pg.PlotWidget):
         pg.PlotWidget.__init__(self)
         self.setMenuEnabled(False)
         self.enableMouse
-        self.setBackgroundBrush(Qt.white)
+        self.setBackgroundBrush(QColorConstants.Transparent)
         self.showGrid(x = True, y = False, alpha = 0.5)
         self.showAxis('left', False)
         axBottom = self.getAxis('bottom')
         axBottom.setTickSpacing(1, 1) # (major, minor)
         self.hideButtons()
-        line_pen    = pg.mkPen(color=(100, 100, 100), width=2)
+
+
+        line_pen    = QPen(QColorConstants.Gray)
+        line_pen.setCosmetic(True)
+        line_pen.setWidth(2)
         line        = pg.InfiniteLine(1, 0, pen=line_pen)
         self.addItem(line)
+        
+        line_pen    = QPen(QColorConstants.Gray)
+        line_pen.setCosmetic(True)
+        line_pen.setWidth(2)
+        self.hovered_line = pg.InfiniteLine(0, 90, pen=line_pen)
+        self.hovered_line.setVisible(False)
+        self.addItem(self.hovered_line)
+        
         self.setXRange(left, right)
         self.setYRange(0, h)
+
+    def enterEvent(self, event):
+        self.hovered_line.setVisible(True)
+    
+    def mouseMoveEvent(self, event: QMouseEvent):
+        super().mouseMoveEvent(event)
+        frame_id = self._frame_id(event.pos())
+        self.hovered_line.setX(frame_id)
+    
+    def leaveEvent(self, event):
+        self.hovered_line.setVisible(False)
 
     def wheelEvent(self, event: QWheelEvent):
         angle = event.angleDelta()
@@ -33,19 +56,21 @@ class Graph(pg.PlotWidget):
             else:               self.wheel_up.emit(event)
         event.accept()
 
-    # def mouseMoveEvent(self, event: QMouseEvent):
-    #     print(f"Graph::mouseMoveEvent {event}")
-    #     pg.PlotWidget.mouseMoveEvent(self, event)
+    def _frame_id(self, point: QPointF | QPoint) -> int:
+        if isinstance(point, QPoint):
+            point = QPointF(point)
+        frame_id = round(self.plotItem.vb.mapSceneToView(point).x())
+        return frame_id 
 
     def mousePressEvent(self, event: QMouseEvent):
         QGraphicsView.mousePressEvent(self, event)
         if event.isAccepted(): return
-        frame_id = round(self.plotItem.vb.mapSceneToView(event.pos()).x())
+        frame_id = self._frame_id(event.pos())
         self.click.emit(frame_id, event)
     
     def contextMenuEvent(self, event: QContextMenuEvent):
         pg.PlotWidget.contextMenuEvent(self, event)
         if event.isAccepted(): return
-        frame_id = round(self.plotItem.vb.mapSceneToView(event.pos()).x())
+        frame_id = self._frame_id(event.pos())
         self.context_menu.emit(frame_id, event)
         event.accept()

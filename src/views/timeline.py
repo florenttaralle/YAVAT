@@ -1,7 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QMenu
-from PyQt5.QtGui import QCursor, QContextMenuEvent
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QMenu
+from PyQt6.QtGui import QCursor, QContextMenuEvent
 from functools import partial
-import pyqt5_fugueicons as icons
 
 from src.models.timeline import TimeLineModel, EventModel
 from src.views.range_event import RangeEventView, RangeEventModel
@@ -16,7 +15,6 @@ class TimeLineHeaderView(QWidget):
         self.setLayout(QVBoxLayout())
         self._name_lbl = QLabel(timeline.name)
         self._name_lbl.font().setBold(True)
-        self._name_lbl.setStyleSheet("QLabel {color: #0000FF}")
         self.layout().addWidget(self._name_lbl)
         timeline.name_changed.connect(self._name_lbl.setText)
 
@@ -68,20 +66,20 @@ class TimeLineView(QWidget):
         menu = QMenu()
         model = self._timeline.at_frame_id(frame_id)
         if model is not None:        
-            action = menu.addAction(icons.icon('minus-circle'), "Delete This Event")
+            action = menu.addAction("Delete This Event")
             action.triggered.connect(partial(self.onMenuDeleteEvent, model))
             if isinstance(model, PonctualEventModel):
-                action = menu.addAction(icons.icon('arrow-out'), "Convert To Range Event From Here")
+                action = menu.addAction("Convert To Range Event From Here")
                 action.setEnabled(self._timeline.at_frame_id(model.frame_id + 1) is None)
                 action.triggered.connect(partial(self.onMenuConvertToRange, model))
             else:
-                action = menu.addAction(icons.icon('arrow-in'), "Convert To Ponctual Event Here")
+                action = menu.addAction("Convert To Ponctual Event Here")
                 action.triggered.connect(partial(self.onMenuConvertToPonctual, model, frame_id))
         else:
-            action = menu.addAction(icons.icon('plus-circle'), "New Range Event From Here")
+            action = menu.addAction("New Range Event From Here")
             action.setEnabled(self._timeline.can_add_range(frame_id, frame_id + 1))
             action.triggered.connect(partial(self.onMenuCreateRange, frame_id))
-            action = menu.addAction(icons.icon('plus-circle'), "New Ponctual Event Here")
+            action = menu.addAction("New Ponctual Event Here")
             action.setEnabled(self._timeline.can_add_ponctual(frame_id))
             action.triggered.connect(partial(self.onMenuCreatePonctual, frame_id))        
         menu.exec(QCursor.pos())
