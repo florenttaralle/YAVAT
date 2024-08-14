@@ -6,6 +6,7 @@ from src.models.timeline import TimeLineModel, EventModel
 from src.views.range_event import RangeEventView, RangeEventModel
 from src.views.ponctual_event import PonctualEventView, PonctualEventModel
 from src.graph import Graph
+from src.icons import Icons
 
 class TimeLineHeaderView(QWidget):
     def __init__(self, timeline: TimeLineModel, parent: QWidget|None = None):
@@ -66,20 +67,20 @@ class TimeLineView(QWidget):
         menu = QMenu()
         model = self._timeline.at_frame_id(frame_id)
         if model is not None:        
-            action = menu.addAction("Delete This Event")
+            action = menu.addAction(Icons.Delete.icon(), "Delete This Event")
             action.triggered.connect(partial(self.onMenuDeleteEvent, model))
             if isinstance(model, PonctualEventModel):
-                action = menu.addAction("Convert To Range Event From Here")
+                action = menu.addAction(Icons.Swap.icon(), "Convert To Range Event From Here")
                 action.setEnabled(self._timeline.at_frame_id(model.frame_id + 1) is None)
                 action.triggered.connect(partial(self.onMenuConvertToRange, model))
             else:
-                action = menu.addAction("Convert To Ponctual Event Here")
+                action = menu.addAction(Icons.Swap.icon(), "Convert To Ponctual Event Here")
                 action.triggered.connect(partial(self.onMenuConvertToPonctual, model, frame_id))
         else:
-            action = menu.addAction("New Range Event From Here")
+            action = menu.addAction(Icons.Add.icon(), "New Range Event From Here")
             action.setEnabled(self._timeline.can_add_range(frame_id, frame_id + 1))
             action.triggered.connect(partial(self.onMenuCreateRange, frame_id))
-            action = menu.addAction("New Ponctual Event Here")
+            action = menu.addAction(Icons.Add.icon(), "New Ponctual Event Here")
             action.setEnabled(self._timeline.can_add_ponctual(frame_id))
             action.triggered.connect(partial(self.onMenuCreatePonctual, frame_id))        
         menu.exec(QCursor.pos())

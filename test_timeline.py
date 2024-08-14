@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStyle
 # #######################################################################
 from src.models.timeline import TimeLineModel
 from src.views.timeline import TimeLineView
