@@ -70,17 +70,17 @@ class TimeLineView(QWidget):
             action = menu.addAction(Icons.Delete.icon(), "Delete This Event")
             action.triggered.connect(partial(self.onMenuDeleteEvent, model))
             if isinstance(model, PonctualEventModel):
-                action = menu.addAction(Icons.Swap.icon(), "Convert To Range Event From Here")
+                action = menu.addAction(Icons.Range.icon(), "Convert To Range Event From Here")
                 action.setEnabled(self._timeline.at_frame_id(model.frame_id + 1) is None)
                 action.triggered.connect(partial(self.onMenuConvertToRange, model))
             else:
-                action = menu.addAction(Icons.Swap.icon(), "Convert To Ponctual Event Here")
+                action = menu.addAction(Icons.Ponctual.icon(), "Convert To Ponctual Event Here")
                 action.triggered.connect(partial(self.onMenuConvertToPonctual, model, frame_id))
         else:
-            action = menu.addAction(Icons.Add.icon(), "New Range Event From Here")
+            action = menu.addAction(Icons.Range.icon(), "New Range Event From Here")
             action.setEnabled(self._timeline.can_add_range(frame_id, frame_id + 1))
             action.triggered.connect(partial(self.onMenuCreateRange, frame_id))
-            action = menu.addAction(Icons.Add.icon(), "New Ponctual Event Here")
+            action = menu.addAction(Icons.Ponctual.icon(), "New Ponctual Event Here")
             action.setEnabled(self._timeline.can_add_ponctual(frame_id))
             action.triggered.connect(partial(self.onMenuCreatePonctual, frame_id))        
         menu.exec(QCursor.pos())
