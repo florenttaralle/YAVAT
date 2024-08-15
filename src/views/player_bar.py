@@ -11,7 +11,6 @@ class PlayerBar(QToolBar):
     def __init__(self, video_file: VideoFile, parent: QWidget|None = None):
         QToolBar.__init__(self, parent)
         self._video_file = video_file
-        self.setFixedHeight(36)
         self.setMovable(False)
 
         self._play_act = QAction()
@@ -67,9 +66,9 @@ class PlayerBar(QToolBar):
         self.setEnabled(self._video_file.valid)
         if self._video_file.valid:
             self.onVideoFilePlayingChanged(self._video_file.player.isPlaying())
-            if self._video_file.player.audioOutput() is not None:
-                self._video_file.player.audioOutput().mutedChanged(self.onVideoFileMutedChanged)
-                self.onVideoFileMutedChanged(self._video_file.player.audioOutput().isMuted())
+            if self._video_file.player.hasAudio():
+                self._video_file._audio_output.mutedChanged.connect(self.onVideoFileMutedChanged)
+                self.onVideoFileMutedChanged(self._video_file._audio_output.isMuted())
             else:
                 self._sound_act.setEnabled(False)
                 self._sound_act.setIcon(Icons.Mute.icon())
@@ -90,7 +89,7 @@ class PlayerBar(QToolBar):
             self._video_file.play()
         
     def onActSound(self):
-        self._video_file.player.audioOutput().setMuted(self._video_file.player.audioOutput().isMuted())
+        self._video_file._audio_output.setMuted(not self._video_file._audio_output.isMuted())
         
     def onBackward(self): 
         self._move(-round(self._video_file.fps))

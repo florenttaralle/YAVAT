@@ -1,6 +1,6 @@
 from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal, QUrl, QTime
-from PyQt6.QtMultimedia import QMediaPlayer
+from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QAudioDevice, QMediaDevices
 from src.video_stream_info import VideoStreamInfo
 
 class VideoFile(QObject):
@@ -15,7 +15,10 @@ class VideoFile(QObject):
         self._error:        str = ""
         self._ready:        bool = False
         self._stream_info:  VideoStreamInfo | None = None
-        self._player        = QMediaPlayer()        
+        self._player        = QMediaPlayer()
+        self._audio_device = QAudioDevice(QMediaDevices.defaultAudioOutput())
+        self._audio_output = QAudioOutput(self._audio_device)
+        self._player.setAudioOutput(self._audio_output)
         self._player.mediaStatusChanged.connect(self.onPlayerMediaStatusChanged)
         self._player.setSource(QUrl.fromLocalFile(path))
         self._player.positionChanged.connect(self.onPlayerPositionChanged)

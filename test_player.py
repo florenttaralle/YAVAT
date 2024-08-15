@@ -1,17 +1,17 @@
+import argparse as ap
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from src.models.video_file import VideoFile
-from src.views.player_bar import PlayerBar
+from src.views.player import Player
 
+parser = ap.ArgumentParser()
+parser.add_argument('video_path')
+args = parser.parse_args()
 
-PATH = "/media/florent/secondary_dd/datasets/youtube_shorts/high/ZmXMLh006yU_1080p/video.mp4"
-
-app = QApplication([])
-
-video_file = VideoFile(PATH)
-player_bar = PlayerBar(video_file)
-
-window = QMainWindow()
-window.setCentralWidget(player_bar)
+app         = QApplication([])
+video_file  = VideoFile(args.video_path)
+window      = QMainWindow()
+player      = Player(video_file)
+window.setCentralWidget(player)
 window.show()
-
 app.exec()
+
