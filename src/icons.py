@@ -5,6 +5,7 @@ from PyQt6.QtGui import QIcon
 
 class Icons(Enum):
     __ICON_FOLDER__ = "assets/icons/"
+    Yavat           = "yavat.png"
     Delete          = "delete.png"
     Range           = "range.png"
     Ponctual        = "ponctual.png"
