@@ -9,7 +9,7 @@ class Graph(pg.PlotWidget):
     click           = pyqtSignal(float, QMouseEvent)
     context_menu    = pyqtSignal(float, QContextMenuEvent)
     
-    def __init__(self, left: int, right: int, h: float):
+    def __init__(self, left: int, position: int, right: int, h: float):
         pg.PlotWidget.__init__(self)
         self.setMenuEnabled(False)
         self.enableMouse
@@ -20,13 +20,19 @@ class Graph(pg.PlotWidget):
         axBottom.setTickSpacing(1, 1) # (major, minor)
         self.hideButtons()
 
-
         line_pen    = QPen(QColorConstants.Gray)
         line_pen.setCosmetic(True)
         line_pen.setWidth(2)
-        line        = pg.InfiniteLine(1, 0, pen=line_pen)
+        line        = pg.InfiniteLine(h/2, 0, pen=line_pen)
         self.addItem(line)
-        
+
+        line_pen    = QPen(QColorConstants.Red)
+        line_pen.setCosmetic(True)
+        line_pen.setWidth(2)
+        self.position_line = pg.InfiniteLine(0, 90, pen=line_pen)
+        self.position_line.setVisible(False)
+        self.addItem(self.position_line)
+
         line_pen    = QPen(QColorConstants.Gray)
         line_pen.setCosmetic(True)
         line_pen.setWidth(2)
@@ -34,8 +40,16 @@ class Graph(pg.PlotWidget):
         self.hovered_line.setVisible(False)
         self.addItem(self.hovered_line)
         
-        self.setXRange(left, right)
         self.setYRange(0, h)
+        self.set_time_window(left, position, right)
+
+    def set_time_window(self, left: int, position: int, right: int):
+        self.setXRange(left, right)
+        if left <= position <= right:
+            self.position_line.setVisible(True)
+            self.position_line.setX(position)
+        else:
+            self.position_line.setVisible(False)
 
     def enterEvent(self, event):
         self.hovered_line.setVisible(True)

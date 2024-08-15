@@ -5,9 +5,17 @@ from PyQt6.QtGui import QIcon
 
 class Icons(Enum):
     __ICON_FOLDER__ = "assets/icons/"
-    Delete      = "delete.png"
-    Range       = "range.png"
-    Ponctual    = "ponctual.png"
-
+    Delete          = "delete.png"
+    Range           = "range.png"
+    Ponctual        = "ponctual.png"
+    Mute            = "mute.png"
+    Sound           = "sound.png"
+    Play            = "play.png"
+    Pause           = "pause.png"
+    Forward         = "forward.png"
+    ForwardStep     = "forward_step.png"
+    BackwardStep    = "backward_step.png"
+    Backward        = "backward.png"
+    
     def icon(self) -> QIcon:
         return QIcon(self.__ICON_FOLDER__ + self.value)

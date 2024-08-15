@@ -1,22 +1,19 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStyle
+from PyQt6.QtWidgets import QApplication, QMainWindow
 # #######################################################################
 from src.models.timeline import TimeLineModel
+from src.models.time_window import TimeWindowModel
 from src.views.timeline import TimeLineView
 # #######################################################################
 
-X_MAX = 30
+X_MAX = 100
 
 app = QApplication([])
 
-timeline = TimeLineModel(30, "Name")
-timeline.add_range(1, 4, "RE-0")
-timeline.add_range(6, 12, "RE-1")
-timeline.add_ponctual(14, "PE-2")
-timeline.add_ponctual(16, "PE-3")
-timeline.add_range(20, 24, "RE-4")
+timeline    = TimeLineModel(X_MAX, "Name")
+time_window = TimeWindowModel(timeline.duration)
 
-view = TimeLineView(timeline)
-view.setFixedHeight(150)
+view = TimeLineView(timeline, time_window)
+view.setFixedHeight(100)
 
 window = QMainWindow()
 window.setCentralWidget(view)
