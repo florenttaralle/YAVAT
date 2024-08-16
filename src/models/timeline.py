@@ -93,19 +93,46 @@ class TimeLineModel(QObject):
         self._insert_event(event)
         return event
 
-    def can_add_range(self, first: int, last: int) -> bool:
+    def can_add_range(self, first: int, last: int|None = None) -> bool:
+        if last is None:
+            last = first + 1
         return (0 <= first <= self._duration) \
             and (0 <= last <= self._duration) \
             and (first < last) \
             and all([not event.intersects(first, last) for event in self._events])
 
-    def add_range(self, first: int, last: int, label: str="") -> RangeEventModel:
+    def add_range(self, first: int, last: int|None = None, label: str="") -> RangeEventModel:
+        if last is None:
+            last = first + 1
         assert self.can_add_range(first, last)
         prv     = self.before_frame_id(first, 0)
         nxt     = self.after_frame_id(last, self._duration)
         event   = RangeEventModel(prv, nxt, first, last, label)
         self._insert_event(event)
         return event
+
+    def can_to_ponctual(self, event: EventModel, frame_id: int) -> bool:
+        if not isinstance(event, RangeEventModel): return False
+        return frame_id in event
+
+    def to_ponctual(self, event: EventModel, frame_id: int) -> PonctualEventModel:
+        assert self.can_to_ponctual(event, frame_id)
+        self.rem(event)
+        return self.add_ponctual(frame_id, event.label)
+
+    def can_to_range(self, event: EventModel, frame_id: int) -> bool:
+        if not isinstance(event, PonctualEventModel): return False
+        if frame_id == self._duration -1: return False
+        return (frame_id in event) and (
+            ((frame_id + 1) <= event.last) or 
+            isinstance(event.nxt_event, int) or
+            ((frame_id + 1) < event.nxt_event.first)
+        )
+
+    def to_range(self, event: EventModel, frame_id: int) -> RangeEventModel:
+        assert self.can_to_range(event, frame_id)
+        self.rem(event)
+        return self.add_range(frame_id, frame_id + 1, event.label)
 
     def _insert_event(self, event: EventModel):
         # update neighboors

@@ -7,7 +7,7 @@ from src.widgets.spacer import Spacer
 from src.views.position_editor import PositionEditor
 from src.views.frame_id_editor import FrameIdEditor
 
-class PlayerBar(QToolBar):
+class PlayerBarView(QToolBar):
     def __init__(self, video_file: VideoFile, parent: QWidget|None = None):
         QToolBar.__init__(self, parent)
         self._video_file = video_file
@@ -107,13 +107,4 @@ class PlayerBar(QToolBar):
         frame_id        = self._video_file.frame_id
         new_frame_id    = (frame_id +n_frames) % self._video_file.n_frames
         self._video_file.gotoFrameId(new_frame_id)
-
-    def onFrameIdEditingFinished(self):
-        print("onFrameIdEditingFinished")
-    def onFrameIdInputRejected(self):
-        print("onFrameIdInputRejected")
-    def onFrameIdReturnPressed(self):
-        print("onFrameIdReturnPressed")
-    def onFrameIdTextEdited(self, text: str):
-        print("onFrameIdTextEdited")
 

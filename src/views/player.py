@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene,
 from PyQt6.QtGui import QColorConstants, QResizeEvent
 from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
 from src.models.video_file import VideoFile
-from src.views.player_bar import PlayerBar
+from src.views.player_bar import PlayerBarView
 from src.views.player_slider import PlayerSlider
 
 class Player(QWidget):
@@ -29,7 +29,7 @@ class Player(QWidget):
 
         self._slider = PlayerSlider(video_file)
         layout.addWidget(self._slider)
-        self._bar = PlayerBar(video_file)
+        self._bar = PlayerBarView(video_file)
         layout.addWidget(self._bar)
 
         self._first_frame: bool = True

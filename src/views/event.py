@@ -12,7 +12,6 @@ class EventView(QGraphicsObject):
         self._h         = h
         self._rect:     QRectF = None
         self.setAcceptHoverEvents(True)
-        # self.setFlag(QGraphicsItem.ItemIsSelectable)
         self.setSelected(True)
         self._update_geometry()
         self._update_tooltip()

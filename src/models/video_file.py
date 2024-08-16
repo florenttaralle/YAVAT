@@ -8,6 +8,7 @@ class VideoFile(QObject):
     error_changed       = pyqtSignal(str)
     frame_id_changed    = pyqtSignal(int)
     position_changed    = pyqtSignal(QTime)
+    playing_changed     = pyqtSignal(bool)
     
     def __init__(self, path: str, parent: QObject|None = None):
         QObject.__init__(self, parent)
@@ -16,12 +17,22 @@ class VideoFile(QObject):
         self._ready:        bool = False
         self._stream_info:  VideoStreamInfo | None = None
         self._player        = QMediaPlayer()
-        self._audio_device = QAudioDevice(QMediaDevices.defaultAudioOutput())
-        self._audio_output = QAudioOutput(self._audio_device)
+        self._audio_device  = QAudioDevice(QMediaDevices.defaultAudioOutput())
+        self._audio_output  = QAudioOutput(self._audio_device)
         self._player.setAudioOutput(self._audio_output)
         self._player.mediaStatusChanged.connect(self.onPlayerMediaStatusChanged)
-        self._player.setSource(QUrl.fromLocalFile(path))
         self._player.positionChanged.connect(self.onPlayerPositionChanged)
+        self._player.playbackStateChanged.connect(self.onPlayerPlaybackStateChanged)
+        self._player.playbackStateChanged
+
+        # load video stream info (so it is always available)
+        try:
+            self._stream_info = VideoStreamInfo.load(self._path)
+        except Exception as what:
+            self._set_error(f"Reading Video Stream Info: {what}")
+            self._set_ready(True)
+        else:
+            self._player.setSource(QUrl.fromLocalFile(path))
 
     @property
     def player(self) -> QMediaPlayer:
@@ -66,10 +77,16 @@ class VideoFile(QObject):
     @property
     def frame_id(self) -> int:
         return self.to_frame_id(self.position)
-    
+    @frame_id.setter
+    def frame_id(self, frame_id: int):
+        self.gotoFrameId(frame_id)
+
     @property
     def position(self) -> QTime:
         return QTime.fromMSecsSinceStartOfDay(self._player.position())
+    @position.setter
+    def position(self, position: QTime):
+        self.gotoPosition(position)
 
     @property
     def n_frames(self) -> int:
@@ -79,28 +96,32 @@ class VideoFile(QObject):
     def duration(self) -> QTime:
         return QTime.fromMSecsSinceStartOfDay(round(self._stream_info.duration_s * 1000))
 
+    @property
+    def playing(self) -> bool:
+        return self._player.isPlaying()
+
     def gotoFrameId(self, frame_id: int):
-        self.gotoPosition(self.to_position(frame_id))
+        if frame_id != self.frame_id:
+            self.gotoPosition(self.to_position(frame_id))
     
     def gotoPosition(self, position: QTime):
-        self._player.setPosition(position.msecsSinceStartOfDay())
+        if position != self.position:
+            self._player.setPosition(position.msecsSinceStartOfDay())
 
     def onPlayerMediaStatusChanged(self, status: QMediaPlayer.MediaStatus):
         match status:
             case QMediaPlayer.MediaStatus.LoadingMedia:
                 self._set_error("")
-                self._stream_info = None
                 self._set_ready(False)
             case QMediaPlayer.MediaStatus.InvalidMedia:
                 self._error = self._player.errorString()
                 self._set_ready(True)
             case QMediaPlayer.MediaStatus.LoadedMedia:
-                try:
-                    self._stream_info = VideoStreamInfo.load(self._path)
-                    self._set_error("")
-                except Exception as what:
-                    self._set_error(f"Reading Video Stream Info: {what}")
                 self._set_ready(True)
+
+    def onPlayerPlaybackStateChanged(self, state: QMediaPlayer.PlaybackState):
+        playing = (state == QMediaPlayer.PlaybackState.PlayingState)
+        self.playing_changed.emit(playing)
 
     def onPlayerPositionChanged(self, position_ms: int):
         # automaticaly pause video on last frame (avoid stop or stale state)

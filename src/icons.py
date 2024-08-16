@@ -20,6 +20,13 @@ class Icons(Enum):
     BackwardStep    = "backward_step.png"
     Backward        = "backward.png"
     Timeline        = "timeline.png"
+    ZoomIn          = "zoom_in.png"
+    ZoomOut         = "zoom_out.png"
+    ZoomReset       = "zoom_reset.png"
+    ArrowFromLeft   = "arrow_from_left.png"
+    ArrowFromRight  = "arrow_from_right.png"
+    ArrowToLeft     = "arrow_to_left.png"
+    ArrowToRight    = "arrow_to_right.png"
     
     def icon(self) -> QIcon:
         return QIcon(self.__ICON_FOLDER__ + self.value)

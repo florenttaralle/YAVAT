@@ -7,6 +7,9 @@ class PonctualEventModel(EventModel):
         EventModel.__init__(self, prv_event, nxt_event, label, parent)
         self._frame_id = frame_id
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} '{self.label}' @{self.frame_id} >"
+
     @property
     def frame_id(self) -> int:
         return self._frame_id
@@ -20,9 +23,16 @@ class PonctualEventModel(EventModel):
             self.last_changed.emit(self._frame_id)
 
     @property
-    def first(self) -> int: return self._frame_id
+    def first(self) -> int: 
+        return self._frame_id
+    @first.setter
+    def first(self, first: int):
+        self.frame_id = first
+    
     @property
-    def last(self) -> int: return self._frame_id
+    def last(self) -> int: 
+        return self._frame_id
+    @last.setter
+    def last(self, last: int):
+        self.frame_id = last
 
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} '{self.label}' @{self.frame_id} >"

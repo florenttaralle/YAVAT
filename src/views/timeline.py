@@ -23,7 +23,7 @@ class TimeLineHeaderView(QWidget):
         timeline.name_changed.connect(self._name_lbl.setText)
 
 class TimeLineView(QWidget):
-    def __init__(self, timeline: TimeLineModel, time_window: TimeWindowModel, event_h: float=0.8, parent: QWidget|None = None):
+    def __init__(self, timeline: TimeLineModel, time_window: TimeWindowModel, fps: float, event_h: float=0.8, parent: QWidget|None = None):
         QWidget.__init__(self, parent)
         self._timeline = timeline
         self._time_window = time_window
@@ -31,11 +31,10 @@ class TimeLineView(QWidget):
         self._header = TimeLineHeaderView(timeline)
         self.layout().addWidget(self._header)
         self._header.setFixedWidth(100)
-        self._graph  = Graph(0, 0, timeline.duration, 1)
+        self._graph  = Graph(0, 0, timeline.duration, 1, fps)
         self._event_h = event_h
         self.layout().addWidget(self._graph)
         self._event_views = [self._event_view_factory(event) for event in timeline]
-
         self._graph.context_menu.connect(self.onGraphContextMenu)
         self._timeline.event_added.connect(self.onTimelineEventAdded)
         self._timeline.event_removed.connect(self.onTimelineEventRemoved)
@@ -93,7 +92,7 @@ class TimeLineView(QWidget):
             action.triggered.connect(partial(self.onMenuDeleteEvent, model))
             if isinstance(model, PonctualEventModel):
                 action = menu.addAction(Icons.Range.icon(), "Convert To Range Event From Here")
-                action.setEnabled(self._timeline.at_frame_id(model.frame_id + 1) is None)
+                action.setEnabled(self._timeline.can_to_range(model, frame_id))
                 action.triggered.connect(partial(self.onMenuConvertToRange, model))
             else:
                 action = menu.addAction(Icons.Ponctual.icon(), "Convert To Ponctual Event Here")
@@ -117,11 +116,9 @@ class TimeLineView(QWidget):
         self._timeline.rem(event)
     
     def onMenuConvertToRange(self, event):
-        self._timeline.rem(event)
-        self._timeline.add_range(event.frame_id, event.frame_id+1, event.label)
+        self._timeline.to_range(event, event.frame_id)
     
     def onMenuConvertToPonctual(self, event, frame_id):
-        self._timeline.rem(event)
-        self._timeline.add_ponctual(frame_id, event.label)
+        self._timeline.to_ponctual(event, frame_id)
     
     

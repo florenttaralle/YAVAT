@@ -1,5 +1,6 @@
 import pyqtgraph as pg
-from PyQt6.QtCore import pyqtSignal, QPointF, QPoint
+from typing import List
+from PyQt6.QtCore import pyqtSignal, QPointF, QPoint, QTime
 from PyQt6.QtGui import QMouseEvent, QWheelEvent, QContextMenuEvent, QColorConstants, QPen
 from PyQt6.QtWidgets import QGraphicsView
 
@@ -9,16 +10,18 @@ class Graph(pg.PlotWidget):
     click           = pyqtSignal(float, QMouseEvent)
     context_menu    = pyqtSignal(float, QContextMenuEvent)
     
-    def __init__(self, left: int, position: int, right: int, h: float):
+    def __init__(self, left: int, position: int, right: int, h: float, fps: float):
         pg.PlotWidget.__init__(self)
         self.setMenuEnabled(False)
         self.enableMouse
         self.setBackgroundBrush(QColorConstants.Transparent)
-        self.showGrid(x = True, y = False, alpha = 0.5)
-        self.showAxis('left', False)
+
         axBottom = self.getAxis('bottom')
-        axBottom.setTickSpacing(1, 1) # (major, minor)
+        axBottom.setStyle(showValues=False)
+        axBottom.setTickSpacing(fps, 1)
+        self.showAxis('left', False)
         self.hideButtons()
+        self.showGrid(x=True, y=False, alpha=1.)
 
         line_pen    = QPen(QColorConstants.Gray)
         line_pen.setCosmetic(True)
@@ -44,7 +47,7 @@ class Graph(pg.PlotWidget):
         self.set_time_window(left, position, right)
 
     def set_time_window(self, left: int, position: int, right: int):
-        self.setXRange(left, right)
+        self.setXRange(left, right, padding=0)
         if left <= position <= right:
             self.position_line.setVisible(True)
             self.position_line.setX(position)
