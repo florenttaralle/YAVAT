@@ -30,7 +30,7 @@ class TimeLineView(QWidget):
         self.setLayout(QHBoxLayout())
         self._header = TimeLineHeaderView(timeline)
         self.layout().addWidget(self._header)
-        self._header.setFixedWidth(150)
+        self._header.setFixedWidth(100)
         self._graph  = Graph(0, 0, timeline.duration, 1)
         self._event_h = event_h
         self.layout().addWidget(self._graph)
@@ -43,6 +43,10 @@ class TimeLineView(QWidget):
         self._graph.wheel_down.connect(self.onGraphWheelDown)
         self._graph.wheel_up.connect(self.onGraphWheelUp)
                
+    @property
+    def timeline(self) -> TimeLineModel:
+        return self._timeline
+    
     def _event_view_factory(self, event):
         if isinstance(event, RangeEventModel):
             view = RangeEventView(event, .5, self._event_h, .2, .1) 
@@ -95,12 +99,12 @@ class TimeLineView(QWidget):
                 action = menu.addAction(Icons.Ponctual.icon(), "Convert To Ponctual Event Here")
                 action.triggered.connect(partial(self.onMenuConvertToPonctual, model, frame_id))
         else:
-            action = menu.addAction(Icons.Range.icon(), "New Range Event From Here")
+            action = menu.addAction(Icons.AddRange.icon(), "New Range Event From Here")
             action.setEnabled(self._timeline.can_add_range(frame_id, frame_id + 1))
             action.triggered.connect(partial(self.onMenuCreateRange, frame_id))
-            action = menu.addAction(Icons.Ponctual.icon(), "New Ponctual Event Here")
+            action = menu.addAction(Icons.AddPonctual.icon(), "New Ponctual Event Here")
             action.setEnabled(self._timeline.can_add_ponctual(frame_id))
-            action.triggered.connect(partial(self.onMenuCreatePonctual, frame_id))        
+            action.triggered.connect(partial(self.onMenuCreatePonctual, frame_id))
         menu.exec(QCursor.pos())
 
     def onMenuCreateRange(self, frame_id):
