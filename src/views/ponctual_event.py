@@ -65,7 +65,6 @@ class PonctualEventView(EventView):
             case Qt.MouseButton.LeftButton:
                 self._set_action(Action.Moving)
                 self._pressX = event.pos().x()
-                event.accept()
         
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         if self._action == Action.Moving:
