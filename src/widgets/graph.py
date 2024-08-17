@@ -31,12 +31,12 @@ class Graph(pg.PlotWidget):
 
         line_pen    = QPen(QColorConstants.Red)
         line_pen.setCosmetic(True)
-        line_pen.setWidth(2)
+        line_pen.setWidth(3)
         self.position_line = pg.InfiniteLine(0, 90, pen=line_pen)
         self.position_line.setVisible(False)
         self.addItem(self.position_line)
 
-        line_pen    = QPen(QColorConstants.Gray)
+        line_pen    = QPen(QColorConstants.DarkBlue)
         line_pen.setCosmetic(True)
         line_pen.setWidth(2)
         self.hovered_line = pg.InfiniteLine(0, 90, pen=line_pen)

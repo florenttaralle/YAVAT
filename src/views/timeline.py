@@ -23,7 +23,7 @@ class TimeLineHeaderView(QWidget):
         timeline.name_changed.connect(self._name_lbl.setText)
 
 class TimeLineView(QWidget):
-    def __init__(self, timeline: TimeLineModel, time_window: TimeWindowModel, fps: float, event_h: float=0.8, parent: QWidget|None = None):
+    def __init__(self, timeline: TimeLineModel, time_window: TimeWindowModel, fps: float, event_h: float=0.5, parent: QWidget|None = None):
         QWidget.__init__(self, parent)
         self._timeline = timeline
         self._time_window = time_window
@@ -41,6 +41,7 @@ class TimeLineView(QWidget):
         self._time_window.changed.connect(self._graph.set_time_window)
         self._graph.wheel_down.connect(self.onGraphWheelDown)
         self._graph.wheel_up.connect(self.onGraphWheelUp)
+        self._graph.setFixedHeight(50)
                
     @property
     def timeline(self) -> TimeLineModel:

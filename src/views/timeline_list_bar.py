@@ -1,32 +1,29 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QToolBar
 from PyQt6.QtGui import QAction, QKeySequence
+from typing import Callable
 # ##############################################################
 from src.models.timeline_list import TimeLineListModel, TimeLineModel
 from src.models.time_window import TimeWindowModel
 from src.models.event import EventModel
 from src.models.range_event import RangeEventModel
-from src.models.ponctual_event import PonctualEventModel
 from src.icons import Icons
-from src.widgets.spacer import Spacer
 # ##############################################################
-
-# To be fixed
-# > red line should be on top (behind graph grid)
-# > invert arrow shortcut for move here on crt_event
-# > left/right to here not possible on crt_event == Ponctual
-# > here to left/right not possible on crt_event == Ponctual
 
 class TimeLineListBarView(QToolBar):
     def __init__(self, timeline_list: TimeLineListModel, time_window: TimeWindowModel, parent: QWidget|None = None):
         QToolBar.__init__(self, parent)
-        self._timeline_list = timeline_list
-        self._time_window   = time_window
-        self._crt_timeline: TimeLineModel|None = None
-        self._crt_event:    EventModel|None = None  # event at current frame_id
-        self._prv_event:    EventModel|None = None  # event before frame_id (defined only if crt_event is None)
-        self._nxt_event:    EventModel|None = None  # event after frame_id (define only if crt_event is None) 
+        self._timeline_list         = timeline_list
+        self._time_window           = time_window
+        self._crt_timeline:         TimeLineModel|None = None
+        self._crt_event:            EventModel|None = None  # event at current frame_id
+        self._prv_event:            EventModel|None = None  # event before crt_event or frame_id
+        self._nxt_event:            EventModel|None = None  # event after crt_event or frame_id
         self.setMovable(False)
+        self._here_to_left_target:  int|None = None
+        self._here_to_right_target: int|None = None
+        self._left_to_here_target:  Callable[[int]]|None = None
+        self._right_to_here_target: Callable[[int]]|None = None
 
         # TIMELINE ADD/REM
         self._act_timeline_add = QAction()
@@ -125,7 +122,7 @@ class TimeLineListBarView(QToolBar):
         self.addSeparator()
 
         time_window.playing_changed.connect(self.onTimeWindowPlayingChanged)
-        time_window.position_changed.connect(self.onTimeWindowPositionChanged)
+        time_window.position_changed.connect(self._update_events_n_actions)
         timeline_list.selected_timeline_changed.connect(self.onTimeLineListSelectedChanged)
         self._set_crt_timeline(timeline_list.selected_timeline)
         self._reset_events()
@@ -134,36 +131,39 @@ class TimeLineListBarView(QToolBar):
 
     def _set_crt_timeline(self, timeline: TimeLineModel|None):
         if self._crt_timeline is not None:
-            self._crt_timeline.event_added.disconnect(self.onTimeLineEventAdded)
-            self._crt_timeline.event_removed.disconnect(self.onTimeLineEventRemoved)
+            self._crt_timeline.event_added.disconnect(self._update_events_n_actions)
+            self._crt_timeline.event_removed.disconnect(self._update_events_n_actions)
         self._crt_timeline = timeline
         if self._crt_timeline is not None:
-            self._crt_timeline.event_added.connect(self.onTimeLineEventAdded)
-            self._crt_timeline.event_removed.connect(self.onTimeLineEventRemoved)
+            self._crt_timeline.event_added.connect(self._update_events_n_actions)
+            self._crt_timeline.event_removed.connect(self._update_events_n_actions)
         self._act_timeline_rem.setEnabled(timeline is not None)
 
     def _set_crt_event(self, event: EventModel|None):
         if self._crt_event is not None:
-            self._crt_event.first_changed.disconnect(self.onCrtEventFirstChanged)
-            self._crt_event.last_changed.disconnect(self.onCrtEventLastChanged)
+            self._crt_event.first_changed.disconnect(self._update_events_n_actions)
+            self._crt_event.last_changed.disconnect(self._update_events_n_actions)
         self._crt_event = event
         if self._crt_event is not None:
-            self._crt_event.first_changed.connect(self.onCrtEventFirstChanged)
-            self._crt_event.last_changed.connect(self.onCrtEventLastChanged)
+            self._crt_event.first_changed.connect(self._update_events_n_actions)
+            self._crt_event.last_changed.connect(self._update_events_n_actions)            
 
     def _set_prv_event(self, event: EventModel|None):
         if self._prv_event is not None:
-            self._prv_event.last_changed.disconnect(self.onPrvEventLastChanged)
+            self._prv_event.last_changed.disconnect(self._update_events_n_actions)
         self._prv_event = event
         if self._prv_event is not None:
-            self._prv_event.last_changed.connect(self.onPrvEventLastChanged)
+            self._prv_event.last_changed.connect(self._update_events_n_actions)
         
     def _set_nxt_event(self, event: EventModel|None):
         if self._nxt_event is not None:
-            self._nxt_event.first_changed.disconnect(self.onNxtEventFirstChanged)
+            self._nxt_event.first_changed.disconnect(self._update_events_n_actions)
         self._nxt_event = event
         if self._nxt_event is not None:
-            self._nxt_event.first_changed.connect(self.onNxtEventFirstChanged)
+            self._nxt_event.first_changed.connect(self._update_events_n_actions)
+
+    def _event_or_none(self, event: EventModel|int|None) -> EventModel|None:
+        return event if isinstance(event, EventModel) else None
 
     def _reset_events(self):
         prv_event, crt_event, nxt_event = None, None, None
@@ -173,6 +173,9 @@ class TimeLineListBarView(QToolBar):
             if crt_event is None:
                 prv_event = self._crt_timeline.before_frame_id(frame_id)
                 nxt_event = self._crt_timeline.after_frame_id(frame_id)
+            else:
+                prv_event = self._event_or_none(crt_event.prv_event)
+                nxt_event = self._event_or_none(crt_event.nxt_event)
         self._set_prv_event(prv_event)
         self._set_crt_event(crt_event)
         self._set_nxt_event(nxt_event)
@@ -191,22 +194,40 @@ class TimeLineListBarView(QToolBar):
             self._act_to_range_here.setEnabled(self._crt_timeline.can_to_range(self._crt_event, frame_id))
             self._act_to_ponctual_here.setEnabled(self._crt_timeline.can_to_ponctual(self._crt_event, frame_id))
             self._act_rem_crt_event.setEnabled(self._crt_event is not None)
-            left_bound  = (self._crt_event is not None) or (self._prv_event is not None)
-            right_bound = (self._crt_event is not None) or (self._nxt_event is not None)
-            self._act_left_to_here.setEnabled(left_bound)
-            self._act_right_to_here.setEnabled(right_bound)
-            self._act_here_to_left.setEnabled(left_bound)
-            self._act_here_to_right.setEnabled(right_bound)
-            if self._crt_event:
-                self._act_left_to_here.setToolTip("Move Current Event's Start to here (Ctrl+Alt+Left)")
-                self._act_right_to_here.setToolTip("Move Current Event's End to here (Ctrl+Alt+Right)")
+            # from here to left
+            if isinstance(self._crt_event, RangeEventModel) and (frame_id != self._crt_event.first):
                 self._act_here_to_left.setToolTip("Goto Current Event's Start (Alt+Left)")
+                self._here_to_left_target = self._crt_event.first
+            else:
+                self._act_here_to_left.setToolTip("Goto Previous Event's End (Alt+Left)")
+                self._here_to_left_target = self._prv_event.last if self._prv_event else None
+            self._act_here_to_left.setEnabled(self._here_to_left_target is not None)
+            # from here to right
+            if isinstance(self._crt_event, RangeEventModel) and (frame_id != self._crt_event.last):                            
                 self._act_here_to_right.setToolTip("Goto Current Event's End (Alt+Right)")
+                self._here_to_right_target = self._crt_event.last
+            else:
+                self._act_here_to_right.setToolTip("Goto Next Event's Start (Alt+Right)")
+                self._here_to_right_target = self._nxt_event.first if self._nxt_event else None
+            self._act_here_to_right.setEnabled(self._here_to_right_target is not None)       
+            # event to here (move events boundaries)
+            if isinstance(self._crt_event, RangeEventModel):
+                self._act_left_to_here.setToolTip("Move Current Event's Start to here (Ctrl+Alt+Left)")
+                self._left_to_here_target = self._crt_event.set_first \
+                    if frame_id not in {self._crt_event.first, self._crt_event.last} \
+                    else None
+                self._act_right_to_here.setToolTip("Move Current Event's End to here (Ctrl+Alt+Right)")
+                self._right_to_here_target = self._crt_event.set_last \
+                    if frame_id not in {self._crt_event.first, self._crt_event.last} \
+                    else None
             else:
                 self._act_left_to_here.setToolTip("Move Previous Event's End to here (Ctrl+Alt+Left)")
+                self._left_to_here_target = self._prv_event.set_last if self._prv_event else None
                 self._act_right_to_here.setToolTip("Move Next Event's Start to here (Ctrl+Alt+Right)")
-                self._act_here_to_left.setToolTip("Goto Previous Event's End (Alt+Left)")
-                self._act_here_to_right.setToolTip("Goto Next Event's Start (Alt+Right)")
+                self._right_to_here_target = self._nxt_event.set_first if self._nxt_event else None
+            self._act_left_to_here.setEnabled(self._left_to_here_target is not None)
+            self._act_right_to_here.setEnabled(self._right_to_here_target is not None)
+                
         else:
             # No timeline selected
             self._act_timeline_rem.setEnabled(False)
@@ -233,37 +254,7 @@ class TimeLineListBarView(QToolBar):
         self._reset_events()
         self._update_actions()
 
-    def onPrvEventLastChanged(self, last: int):
-        if self._time_window.playing: return
-        self._reset_events()
-        self._update_actions()
-
-    def onCrtEventFirstChanged(self, first: int):
-        if self._time_window.playing: return
-        self._reset_events()
-        self._update_actions()
-
-    def onCrtEventLastChanged(self, last: int):
-        if self._time_window.playing: return
-        self._reset_events()
-        self._update_actions()
-
-    def onNxtEventFirstChanged(self, first: int):
-        if self._time_window.playing: return
-        self._reset_events()
-        self._update_actions()
-
-    def onTimeLineEventAdded(self, event: EventModel):
-        if self._time_window.playing: return
-        self._reset_events()
-        self._update_actions()
-
-    def onTimeLineEventRemoved(self, event: EventModel):
-        if self._time_window.playing: return
-        self._reset_events()
-        self._update_actions()
-
-    def onTimeWindowPositionChanged(self, frame_id: int):
+    def _update_events_n_actions(self, *_):
         if self._time_window.playing: return
         self._reset_events()
         self._update_actions()
@@ -274,18 +265,10 @@ class TimeLineListBarView(QToolBar):
         self._timeline_list.rem(self._crt_timeline)
         
     def onActAddRangeHere(self, checked: bool):
-        event = self._crt_timeline.add_range(self._time_window.position)
-        self._set_crt_event(event)
-        self._set_prv_event(None)
-        self._set_nxt_event(None)
-        self._update_actions()
+        self._crt_timeline.add_range(self._time_window.position)
         
     def onActAddPonctualHere(self, checked: bool):
-        event = self._crt_timeline.add_ponctual(self._time_window.position)
-        self._set_crt_event(event)
-        self._set_prv_event(None)
-        self._set_nxt_event(None)
-        self._update_actions()
+        self._crt_timeline.add_ponctual(self._time_window.position)
     
     def onActToRangeHere(self, checked: bool):
         self._crt_timeline.to_range(self._crt_event, self._time_window.position)
@@ -297,25 +280,13 @@ class TimeLineListBarView(QToolBar):
         self._crt_timeline.rem(self._crt_event)
 
     def onActLeftToHere(self, checked: bool):
-        if self._crt_event is not None:
-            self._crt_event.first = self._time_window.position
-        else:
-            self._prv_event.last = self._time_window.position
+        self._left_to_here_target(self._time_window.position)
 
     def onActRightToHere(self, checked: bool):
-        if self._crt_event is not None:
-            self._crt_event.last = self._time_window.position
-        else:
-            self._nxt_event.first = self._time_window.position
+        self._right_to_here_target(self._time_window.position)
 
     def onActHereToLeft(self, checked: bool):
-        if self._crt_event is not None:
-            self._time_window.position = self._crt_event.first
-        else:
-            self._time_window.position = self._prv_event.last
+        self._time_window.position = self._here_to_left_target
             
     def onActHereToRight(self, checked: bool):
-        if self._crt_event is not None:
-            self._time_window.position = self._crt_event.last
-        else:
-            self._time_window.position = self._nxt_event.first
+        self._time_window.position = self._here_to_right_target

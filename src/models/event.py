@@ -53,6 +53,13 @@ class EventModel(QObject):
     def last(self) -> int: 
         raise NotImplementedError()
 
+    def set_first(self, first: int):
+        self.first = first
+
+    def set_last(self, last: int):
+        self.last = last
+        
+
     def __contains__(self, frame_id: int) -> bool:
         return self.first <= frame_id <= self.last
 

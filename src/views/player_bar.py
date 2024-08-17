@@ -57,6 +57,7 @@ class PlayerBarView(QToolBar):
 
         self._sound_act = QAction()
         self._sound_act.triggered.connect(self.onActSound)
+        self._sound_act.setShortcut(Qt.Key.Key_M)
         self.addAction(self._sound_act)
                 
         self._video_file.ready_changed.connect(self.onVideoFileReadyChanged)
