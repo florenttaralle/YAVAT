@@ -1,5 +1,5 @@
-from PyQt6.QtCore import QSize
-from PyQt6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QAbstractItemView, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QAbstractItemView
+from PyQt6.QtGui import QColorConstants as colors
 from typing import Mapping
 from src.models.time_window import TimeWindowModel
 from src.models.timeline_list import TimeLineListModel, TimeLineModel

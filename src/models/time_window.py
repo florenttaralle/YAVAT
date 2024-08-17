@@ -62,6 +62,7 @@ class TimeWindowModel(QObject):
     def goto(self, position: int):
         if position != self._position:
             self._position = position
+            self._update_bounds()
             self.position_changed.emit(position)
             self.changed.emit(self._left, self._position, self._right)
     

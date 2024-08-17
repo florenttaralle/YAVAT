@@ -1,8 +1,7 @@
 import pyqtgraph as pg
 from typing import List
-from PyQt6.QtCore import pyqtSignal, QPointF, QPoint, QTime
+from PyQt6.QtCore import pyqtSignal, QPointF, QPoint
 from PyQt6.QtGui import QMouseEvent, QWheelEvent, QContextMenuEvent, QColorConstants, QPen
-from PyQt6.QtWidgets import QGraphicsView
 
 class Graph(pg.PlotWidget):
     wheel_up        = pyqtSignal(QWheelEvent)
@@ -80,8 +79,8 @@ class Graph(pg.PlotWidget):
         return frame_id 
 
     def mousePressEvent(self, event: QMouseEvent):
-        QGraphicsView.mousePressEvent(self, event)
-        if event.isAccepted(): return
+        # QGraphicsView.mousePressEvent(self, event)
+        # if event.isAccepted(): return
         frame_id = self._frame_id(event.pos())
         self.click.emit(frame_id, event)
     

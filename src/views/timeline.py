@@ -7,7 +7,7 @@ from src.models.timeline import TimeLineModel, EventModel
 from src.models.time_window import TimeWindowModel
 from src.views.range_event import RangeEventView, RangeEventModel
 from src.views.ponctual_event import PonctualEventView, PonctualEventModel
-from src.widgets.graph import Graph, QWheelEvent
+from src.widgets.graph import Graph, QWheelEvent, QMouseEvent
 from src.icons import Icons
 
 class TimeLineHeaderView(QWidget):
@@ -41,7 +41,9 @@ class TimeLineView(QWidget):
         self._time_window.changed.connect(self._graph.set_time_window)
         self._graph.wheel_down.connect(self.onGraphWheelDown)
         self._graph.wheel_up.connect(self.onGraphWheelUp)
+        self._graph.click.connect(self.onGraphClick)
         self._graph.setFixedHeight(50)
+        self.layout().setContentsMargins(0, 2, 2, 2)
                
     @property
     def timeline(self) -> TimeLineModel:
@@ -81,6 +83,11 @@ class TimeLineView(QWidget):
     def onGraphWheelDown(self, event: QWheelEvent):
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self._time_window.zoom_in()
+
+    def onGraphClick(self, frame_id: float, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._time_window.goto(round(frame_id))
+            event.accept()
 
     def onGraphContextMenu(self, frame_id: float, event: QContextMenuEvent):
         frame_id = round(frame_id)

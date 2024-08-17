@@ -27,6 +27,9 @@ class Icons(Enum):
     ArrowFromRight  = "arrow_from_right.png"
     ArrowToLeft     = "arrow_to_left.png"
     ArrowToRight    = "arrow_to_right.png"
+    Edit            = "edit.png"
+    Hidden          = "hidden.png"
+    Visible         = "visible.png"
     
     def icon(self) -> QIcon:
         return QIcon(self.__ICON_FOLDER__ + self.value)
