@@ -23,8 +23,8 @@ class EventModel(QObject):
         self._label     = label
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}[{self._first} ; {self._last}] prv:{self._prv_event}, nxt:{self._nxt_event}, lbl:'{self._label}'>"
-        
+        return f"<{self.__class__.__name__}[{self._first} ; {self._last}] lbl:'{self._label}'>"
+    
     @property
     def label(self) -> str:
         return self._label

@@ -1,3 +1,4 @@
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
 from PyQt6.QtGui import QContextMenuEvent, QColor
 # ##################################################################
@@ -12,6 +13,9 @@ from src.views.timeline_contextual_menu import TimelineContextualMenu
 
 class TimelineView(QWidget):
     COLOR = QColor("#346beb")
+
+    edit_timeline_name = pyqtSignal(TimelineModel)
+    "SIGNAL: edit_timeline_name(timeline: TimelineModel)"
     
     def __init__(self, timeline: TimelineModel, time_window: TimeWindowModel, parent: QWidget|None = None):
         QWidget.__init__(self, parent)
@@ -26,6 +30,7 @@ class TimelineView(QWidget):
         self.layout().addWidget(self._graph)
         self.layout().setContentsMargins(0, 2, 2, 2)
         self._header.setFixedWidth(150)
+        self._header.edit_timeline_name.connect(self.edit_timeline_name)
         # context menu
         self._context_menu = TimelineContextualMenu(timeline, time_window)
         # connect signals/slots
@@ -61,7 +66,7 @@ class TimelineView(QWidget):
         self._event_views.remove(view)
 
     def onEventViewDoubleClick(self, event: EventModel):
-        print(f"onEventViewDoubleClick {event}")
+        self.edit_timeline_name.emit(self._timeline)
 
     def onGraphContextMenu(self, frame_id: float, event: QContextMenuEvent):
         frame_id = round(frame_id)

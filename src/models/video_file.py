@@ -2,6 +2,7 @@ from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal, QUrl, QTime
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QAudioDevice, QMediaDevices
 from src.video_stream_info import VideoStreamInfo
+from time import sleep
 
 class VideoFile(QObject):
     ready_changed       = pyqtSignal(bool)
@@ -118,7 +119,7 @@ class VideoFile(QObject):
                 self._set_ready(True)
             case QMediaPlayer.MediaStatus.LoadedMedia:
                 self._set_ready(True)
-
+    
     def onPlayerPlaybackStateChanged(self, state: QMediaPlayer.PlaybackState):
         playing = (state == QMediaPlayer.PlaybackState.PlayingState)
         self.playing_changed.emit(playing)

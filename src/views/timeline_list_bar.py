@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QToolBar
 from PyQt6.QtGui import QAction, QKeySequence
 from typing import Callable
@@ -13,6 +13,9 @@ from src.icons import Icons
 
 
 class TimelineListBarView(QToolBar):
+    edit_timeline_name = pyqtSignal(TimelineModel)
+    "SIGNAL: edit_timeline_name(timeline: TimelineModel)"
+
     def __init__(self, timeline_list: TimelineListModel, state: TimelineListState, 
                  time_window: TimeWindowModel, parent: QWidget|None = None):
         QToolBar.__init__(self, parent)
@@ -256,7 +259,7 @@ class TimelineListBarView(QToolBar):
         self._timeline_list.add()
 
     def onActTimelineEdit(self, checked: bool):
-        print(f"Edit {self._crt_timeline}")
+        self.edit_timeline_name.emit(self._crt_timeline)
 
     def onActTimelineRem(self, checked: bool):
         self._timeline_list.rem(self._crt_timeline)
