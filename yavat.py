@@ -15,6 +15,7 @@ from src.save_n_load import SaveAndLoad
 parser = ap.ArgumentParser()
 parser.add_argument('video_path')
 parser.add_argument('-l', '--labels_path', default=None)
+parser.add_argument('-t', '--timeline', action='append', default=[])
 args = parser.parse_args()
 
 app             = QApplication([])
@@ -25,6 +26,10 @@ assert video_file.error == "", video_file.error
 timeline_list   = TimelineListModel(video_file.n_frames)
 time_window     = TimeWindowModel.from_video_file(video_file)
 save_n_load     = SaveAndLoad(video_file, timeline_list)
+# create provided timeline names if any provided
+for timeline_name in args.timeline:
+    timeline_list.add(timeline_name)
+# open label file if any provided
 if args.labels_path is not None:
     save_n_load.load_file(args.labels_path)
 else:
