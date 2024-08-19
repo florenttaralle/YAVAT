@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QWidget, QToolBar
+from PyQt6.QtWidgets import QWidget, QToolBar, QMessageBox
 from PyQt6.QtGui import QAction, QKeySequence
 from typing import Callable
 # ##############################################################
@@ -264,8 +264,14 @@ class TimelineListBarView(QToolBar):
         self.edit_timeline_name.emit(self._crt_timeline)
 
     def onActTimelineRem(self, checked: bool):
-        self._timeline_list.rem(self._crt_timeline)
-        
+        button = QMessageBox.warning(self, 
+                                     "Timeline Suppression Confirmation", 
+                                     f"You'r going to delete timeline '{self._crt_timeline.name}'", 
+                                     QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+                                     QMessageBox.StandardButton.Cancel)
+        if button == QMessageBox.StandardButton.Ok:
+            self._timeline_list.rem(self._crt_timeline)
+
     def onActAddEventHere(self, checked: bool):
         self._crt_timeline.add(self._time_window.position, self._time_window.position)
         
