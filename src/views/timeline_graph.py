@@ -52,6 +52,8 @@ class TimelineGraphView(pg.PlotWidget):
         self._position_line.setLine(position, 0, position, 1)
 
     def mousePressEvent(self, event: QMouseEvent):
+        QGraphicsView.mousePressEvent(self, event)
+        if event.isAccepted(): return
         if event.button() == Qt.MouseButton.LeftButton:
             frame_id = self._frame_id(event.pos())
             self._time_window.goto(frame_id)

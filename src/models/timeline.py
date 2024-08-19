@@ -104,3 +104,15 @@ class TimelineModel(QObject):
         self._events.remove(event)
         self.event_removed.emit(event)
         return event
+
+    def data(self):
+        return {
+            'name':     self._name,
+            'events':   [event.data() for event in self._events]
+        }
+
+    def flat_data(self):
+        return [
+            {'timeline': self._name, **event.data()}
+            for event in self._events
+        ]

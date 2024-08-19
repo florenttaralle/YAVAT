@@ -6,6 +6,7 @@ from PyQt6.QtGui import QIcon
 class Icons(Enum):
     __ICON_FOLDER__ = "assets/icons/"
     Yavat           = "yavat.png"
+    Quit            = "quit.png"
 
     Mute            = "mute.png"
     Sound           = "sound.png"
@@ -35,9 +36,9 @@ class Icons(Enum):
     ArrowToLeft     = "arrow_to_left.png"
     ArrowToRight    = "arrow_to_right.png"
 
+    Load            = "download.png"
+    Save            = "upload.png"
     Edit            = "edit.png"
-    Hidden          = "hidden.png"
-    Visible         = "visible.png"
     
     def icon(self) -> QIcon:
         return QIcon(self.__ICON_FOLDER__ + self.value)

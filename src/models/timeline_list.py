@@ -10,6 +10,8 @@ class TimelineListModel(QObject):
     "SIGNAL: timeline_added(timeline: TimelineModel)"
     timeline_removed            = pyqtSignal(TimelineModel)
     "SIGNAL: timeline_removed(timeline: TimelineModel)"
+    duration_changed            = pyqtSignal(int)
+    "SIGNAL: duration_changed(duration: int)"
     _nxt_item_id                = it.count()
     
     def __init__(self, duration: int, parent: QObject|None=None):
@@ -31,7 +33,23 @@ class TimelineListModel(QObject):
 
     def names(self) -> List[str]:
         return [timeline.name for timeline in self._timelines]
+
+    def clear(self):
+        while len(self._timelines):
+            self.rem(self._timelines[0])
     
+    @property
+    def duration(self) -> int:
+        return self._duration
+    @duration.setter
+    def duration(self, duration: int):
+        self.set_duration(duration)
+    def set_duration(self, duration: int):
+        if duration != self._duration:
+            assert len(self) == 0, 'Cant update duration when timelines exist'
+            self._duration = duration
+            self.duration_changed.emit(duration)
+
     def __contains__(self, name: str) -> bool:
         return name in self.names()
     
@@ -53,3 +71,10 @@ class TimelineListModel(QObject):
         self._timelines.remove(timeline)
         self.timeline_removed.emit(timeline)
         return timeline
+
+    def data(self):
+        return [timeline.data() for timeline in self._timelines]
+
+    def flat_data(self):
+        return list(it.chain(*[timeline.flat_data() for timeline in self._timelines]))
+

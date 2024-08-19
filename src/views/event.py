@@ -17,8 +17,8 @@ class EventView(QGraphicsObject):
     double_click    = pyqtSignal(EventModel)
     "SIGNAL: double_click(event: EventModel)"
     
-    ADD_W: float = .1
-    HDL_W: float = .1
+    ADD_W: float = .2
+    HDL_W: float = .2
     
     def __init__(self, event: EventModel, color: QColor, parent: QGraphicsItem|None=None):
         QGraphicsObject.__init__(self, parent)

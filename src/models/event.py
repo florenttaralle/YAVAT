@@ -94,3 +94,9 @@ class EventModel(QObject):
             return bool(self.intersection(first, last))
         raise TypeError()
     
+    def data(self):
+        return {
+            'first':    self._first,
+            'last':     self._last,
+            'label':    self._label,
+        }

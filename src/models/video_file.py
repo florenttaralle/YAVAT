@@ -2,7 +2,7 @@ from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal, QUrl, QTime
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QAudioDevice, QMediaDevices
 from src.video_stream_info import VideoStreamInfo
-from time import sleep
+import os
 
 class VideoFile(QObject):
     ready_changed       = pyqtSignal(bool)
@@ -11,9 +11,9 @@ class VideoFile(QObject):
     position_changed    = pyqtSignal(QTime)
     playing_changed     = pyqtSignal(bool)
     
-    def __init__(self, path: str, parent: QObject|None = None):
+    def __init__(self, video_path: str, parent: QObject|None = None):
         QObject.__init__(self, parent)
-        self._path          = path
+        self._video_path    = video_path
         self._error:        str = ""
         self._ready:        bool = False
         self._stream_info:  VideoStreamInfo | None = None
@@ -28,12 +28,22 @@ class VideoFile(QObject):
 
         # load video stream info (so it is always available)
         try:
-            self._stream_info = VideoStreamInfo.load(self._path)
+            self._stream_info = VideoStreamInfo.load(self._video_path)
         except Exception as what:
             self._set_error(f"Reading Video Stream Info: {what}")
             self._set_ready(True)
         else:
-            self._player.setSource(QUrl.fromLocalFile(path))
+            self._player.setSource(QUrl.fromLocalFile(video_path))
+
+    def data(self):
+        return {
+            "video_filename":   os.path.basename(self._video_path),
+            "duration_ms":      self.duration.msecsSinceStartOfDay(),
+            "duration_frames":  self.n_frames,
+            "fps":              self.fps,
+            "width":            self._stream_info.width,
+            "height":           self._stream_info.height,            
+        }
 
     @property
     def player(self) -> QMediaPlayer:
@@ -41,7 +51,7 @@ class VideoFile(QObject):
 
     @property
     def path(self) -> str:
-        return self._path
+        return self._video_path
 
     @property
     def ready(self) -> str:
