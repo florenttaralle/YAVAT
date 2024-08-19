@@ -16,6 +16,8 @@ class TimelineView(QWidget):
 
     edit_timeline_name = pyqtSignal(TimelineModel)
     "SIGNAL: edit_timeline_name(timeline: TimelineModel)"
+    edit_event = pyqtSignal(EventModel)
+    "SIGNAL: edit_event(event: EventModel)"
     
     def __init__(self, timeline: TimelineModel, time_window: TimeWindowModel, parent: QWidget|None = None):
         QWidget.__init__(self, parent)
@@ -23,17 +25,17 @@ class TimelineView(QWidget):
         self._time_window = time_window
         self.setLayout(QHBoxLayout())
         self._header = TimelineHeaderView(timeline)
-        self.layout().addWidget(self._header)
         self._header.setFixedWidth(100)
+        self.layout().addWidget(self._header)
         self._graph  = TimelineGraphView(time_window, self.COLOR)
         self._graph.setFixedHeight(50)
         self.layout().addWidget(self._graph)
         self.layout().setContentsMargins(0, 2, 2, 2)
         self._header.setFixedWidth(150)
-        self._header.edit_timeline_name.connect(self.edit_timeline_name)
         # context menu
         self._context_menu = TimelineContextualMenu(timeline, time_window)
         # connect signals/slots
+        self._header.edit_timeline_name.connect(self.edit_timeline_name)
         self._graph.context_menu.connect(self.onGraphContextMenu)
         self._timeline.event_added.connect(self.onTimelineEventAdded)
         self._timeline.event_removed.connect(self.onTimelineEventRemoved)
@@ -47,7 +49,7 @@ class TimelineView(QWidget):
     def _event_view_factory(self, event: EventModel) -> EventView:
         view = EventView(event, self.COLOR)
         self._graph.addItem(view)
-        view.double_click.connect(self.onEventViewDoubleClick)
+        view.double_click.connect(self.edit_event)
         return view
 
     def _event_to_view(self, event: EventModel):
@@ -64,9 +66,6 @@ class TimelineView(QWidget):
         view = self._event_to_view(event)
         self._graph.removeItem(view)
         self._event_views.remove(view)
-
-    def onEventViewDoubleClick(self, event: EventModel):
-        self.edit_timeline_name.emit(self._timeline)
 
     def onGraphContextMenu(self, frame_id: float, event: QContextMenuEvent):
         frame_id = round(frame_id)

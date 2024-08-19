@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QAbstractItem
 from typing import Mapping
 from src.models.time_window import TimeWindowModel
 from src.models.timeline_list import TimelineListModel, TimelineModel
+from src.models.event import EventModel
 from src.models.timeline_list_state import TimelineListState
 from src.views.timeline import TimelineView
 
@@ -10,6 +11,8 @@ from src.views.timeline import TimelineView
 class TimelineListListView(QListWidget):
     edit_timeline_name = pyqtSignal(TimelineModel)
     "SIGNAL: edit_timeline_name(timeline: TimelineModel)"
+    edit_event = pyqtSignal(EventModel)
+    "SIGNAL: edit_event(event: EventModel)"
     
     def __init__(self, timeline_list: TimelineListModel, state: TimelineListState,
                  time_window: TimeWindowModel, parent: QWidget|None = None):
@@ -48,7 +51,8 @@ class TimelineListListView(QListWidget):
         self._state[timeline].visible_changed.connect(
             lambda _, visible: widget.setHidden(not visible))
         view.edit_timeline_name.connect(self.edit_timeline_name)
-    
+        view.edit_event.connect(self.edit_event)
+
     def onTimelineListItemRemoved(self, timeline: TimelineModel):
         row = self._timeline_row(timeline)
         self.takeItem(row)

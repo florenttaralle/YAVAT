@@ -15,6 +15,8 @@ from src.icons import Icons
 class TimelineListBarView(QToolBar):
     edit_timeline_name = pyqtSignal(TimelineModel)
     "SIGNAL: edit_timeline_name(timeline: TimelineModel)"
+    edit_event = pyqtSignal(EventModel)
+    "SIGNAL: edit_event(event: EventModel)"
 
     def __init__(self, timeline_list: TimelineListModel, state: TimelineListState, 
                  time_window: TimeWindowModel, parent: QWidget|None = None):
@@ -268,7 +270,7 @@ class TimelineListBarView(QToolBar):
         self._crt_timeline.add(self._time_window.position, self._time_window.position)
         
     def onActEditCrtEvent(self, checked: bool):
-        print(f"Edit {self._crt_event}")
+        self.edit_event.emit(self._crt_event)
 
     def onActRemCrtEvent(self, checked: bool):
         self._crt_timeline.rem(self._crt_event)
