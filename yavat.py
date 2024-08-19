@@ -27,6 +27,11 @@ time_window     = TimeWindowModel.from_video_file(video_file)
 save_n_load     = SaveAndLoad(video_file, timeline_list)
 if args.labels_path is not None:
     save_n_load.load_file(args.labels_path)
+else:
+    # try to auto-find .yavat with same name
+    labels_path = os.path.splitext(args.video_path)[0] + ".yavat"
+    if os.path.exists(labels_path):
+        save_n_load.load_file(args.labels_path)
 
 # views
 player_view         = Player(video_file)

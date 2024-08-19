@@ -40,7 +40,8 @@ class TimelineNameInputDialog(QDialog):
             return False
         if (name != self._crt_timeline.name) and (name in self._timeline_list.names()):
             self._error_lbl.setText("Name already taken.")
-            return False        
+            return False
+        self._error_lbl.setText("")
         return True
 
     @property
