@@ -12,14 +12,8 @@ Implementation in Python3. It uses PyQt6 and ffmpeg (for video stream informatio
 
 ## TODO
 
-- P0 : high priority
-    - Implement annotations Export/Import using JSON.
-    - Implement security popup for deleting timelines
-    - Implement timeline name edition (popup, button, dblclick)
-    - Implement event label edition (popup, button, dblclick)
-    - Implement load video/annotation from GUI.
-- P2 : low priority 
-    - Implement TimeSeries
+- Implement moving event to another timeline.
+- Implement TimeSeries.
 
 ## Installation
 
