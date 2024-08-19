@@ -6,11 +6,7 @@ from PyQt6.QtGui import QIcon
 class Icons(Enum):
     __ICON_FOLDER__ = "assets/icons/"
     Yavat           = "yavat.png"
-    Delete          = "delete.png"
-    Range           = "range.png"
-    Ponctual        = "ponctual.png"
-    AddRange        = "range_add.png"
-    AddPonctual     = "ponctual_add.png"
+
     Mute            = "mute.png"
     Sound           = "sound.png"
     Play            = "play.png"
@@ -19,14 +15,26 @@ class Icons(Enum):
     ForwardStep     = "forward_step.png"
     BackwardStep    = "backward_step.png"
     Backward        = "backward.png"
-    Timeline        = "timeline.png"
+    Goto            = "goto.png"
+
     ZoomIn          = "zoom_in.png"
     ZoomOut         = "zoom_out.png"
     ZoomReset       = "zoom_reset.png"
+
+    Event           = "event.png"
+    EventAdd        = "event_add.png"
+    EventInfo       = "event_info.png"
+    EventRem        = "event_rem.png"
+
+    Timeline        = "timeline.png"
+    TimelineAdd     = "timeline_add.png"
+    TimelineRem     = "timeline_rem.png"
+    
     ArrowFromLeft   = "arrow_from_left.png"
     ArrowFromRight  = "arrow_from_right.png"
     ArrowToLeft     = "arrow_to_left.png"
     ArrowToRight    = "arrow_to_right.png"
+
     Edit            = "edit.png"
     Hidden          = "hidden.png"
     Visible         = "visible.png"

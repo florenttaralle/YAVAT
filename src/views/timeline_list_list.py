@@ -1,38 +1,28 @@
 from PyQt6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QAbstractItemView
-from PyQt6.QtGui import QColorConstants as colors
 from typing import Mapping
 from src.models.time_window import TimeWindowModel
-from src.models.timeline_list import TimeLineListModel, TimeLineModel
-from src.views.timeline import TimeLineView
+from src.models.timeline_list import TimelineListModel, TimelineModel
+from src.models.timeline_list_state import TimelineListState
+from src.views.timeline import TimelineView
 
 
-class TimeLineListListView(QListWidget):
-    def __init__(self, timeline_list: TimeLineListModel, time_window: TimeWindowModel, fps: float, event_h: float=0.8, parent: QWidget|None = None):
+class TimelineListListView(QListWidget):
+    def __init__(self, timeline_list: TimelineListModel, state: TimelineListState,
+                 time_window: TimeWindowModel, parent: QWidget|None = None):
         QListWidget.__init__(self, parent)
         self._timeline_list     = timeline_list
+        self._state             = state
         self._time_window       = time_window
-        self._fps               = fps
-        self._widget_items:     Mapping[TimeLineView, QListWidgetItem] = {}
+        self._widgets:          Mapping[TimelineView, QListWidgetItem] = {}
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        # events from the model
-        timeline_list.timeline_added.connect(self.onTimeLineListItemAdded)
-        timeline_list.timeline_removed.connect(self.onTimeLineListItemRemoved)
-        timeline_list.selected_timeline_changed.connect(self.onTimeLineListSelectedItemChanged)
         # events from the view
         self.itemSelectionChanged.connect(self.onSelectionChanged)
-        # populate if required        
+        # events from the model
+        state.timeline_added.connect(self.onTimelineListItemAdded)
+        state.timeline_removed.connect(self.onTimelineListItemRemoved)
+        # populate with existing items
         for timeline in timeline_list:
-            self.onTimeLineListItemAdded(timeline)
-
-    def onTimeLineListSelectedItemChanged(self, current_timeline: TimeLineModel|None, previous_timeline: TimeLineModel|None):
-        if current_timeline is not None:
-            view    = self._timeline_view(current_timeline)
-            widget  = self._widget_items[view]
-            widget.setSelected(True)
-        elif previous_timeline is not None:
-            view    = self._timeline_view(previous_timeline)
-            widget  = self._widget_items[view]
-            widget.setSelected(False)
+            self.onTimelineListItemAdded(timeline)
 
     def onSelectionChanged(self):
         widgets = self.selectedItems()
@@ -40,35 +30,38 @@ class TimeLineListListView(QListWidget):
             selected_timeline = self._widget_to_timeline(widgets[0])
         else:
             selected_timeline = None
-        self._timeline_list.selected_timeline = selected_timeline
+        self._state.set_selection(selected_timeline)
 
-    def onTimeLineListItemAdded(self, timeline: TimeLineModel):
-        view                        = TimeLineView(timeline, self._time_window, self._fps)
+    def onTimelineListItemAdded(self, timeline: TimelineModel):
+        view                        = TimelineView(timeline, self._time_window)
         widget                      = QListWidgetItem()
-        widget.setSizeHint(view.minimumSizeHint())
-        self._widget_items[view]    = widget
+        self._widgets[view]         = widget
         self.addItem(widget)
         self.setItemWidget(widget, view)
+        widget.setSizeHint(view.minimumSizeHint())
+        widget.setSelected(True)
+        self._state[timeline].visible_changed.connect(
+            lambda _, visible: widget.setHidden(not visible))
     
-    def onTimeLineListItemRemoved(self, timeline: TimeLineModel):
+    def onTimelineListItemRemoved(self, timeline: TimelineModel):
         row = self._timeline_row(timeline)
         self.takeItem(row)
 
-    def _widget_to_timeline(self, widget: QListWidgetItem) -> TimeLineModel:
-        for view, widget_ in self._widget_items.items():
+    def _widget_to_timeline(self, widget: QListWidgetItem) -> TimelineModel:
+        for view, widget_ in self._widgets.items():
             if widget is widget_:
                 return view.timeline
         raise ValueError("Widget not Found")
 
-    def _timeline_view(self, timeline: TimeLineModel) -> TimeLineView:
-        for view in self._widget_items.keys():
+    def _timeline_view(self, timeline: TimelineModel) -> TimelineView:
+        for view in self._widgets.keys():
             if view.timeline is timeline:
                 return view
         raise ValueError("Not Found")
 
-    def _timeline_row(self, timeline: TimeLineModel) -> int:
+    def _timeline_row(self, timeline: TimelineModel) -> int:
         view    = self._timeline_view(timeline)
-        widget  = self._widget_items[view]
+        widget  = self._widgets[view]
         for row in range(self.count()):
             if self.item(row) is widget:
                 return row

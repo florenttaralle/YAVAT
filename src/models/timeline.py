@@ -2,14 +2,16 @@ from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal
 from typing import List
 from .event import EventModel
-from .ponctual_event import PonctualEventModel
-from .range_event import RangeEventModel
 
-class TimeLineModel(QObject):
+class TimelineModel(QObject):
     duration_changed    = pyqtSignal(int)
+    "SIGNAL: duration_changed(duration: int)"
     name_changed        = pyqtSignal(str)
+    "SIGNAL: name_changed(name: str)"
     event_added         = pyqtSignal(EventModel)
+    "SIGNAL: event_added(event: EventModel)"
     event_removed       = pyqtSignal(EventModel)
+    "SIGNAL: event_removed(event: EventModel)"
     
     def __init__(self, duration: int, name: str, parent: QObject | None=None):
         QObject.__init__(self, parent)
@@ -32,33 +34,12 @@ class TimeLineModel(QObject):
     @property
     def duration(self) -> int:
         return self._duration
-    @duration.setter
-    def duration(self, duration: int):
-        if duration != self._duration:
-            assert duration > 0
-            assert all([event.last <= duration for event in self._events]) # TODO: clean invalid items
-            self._duration = duration
-            self.duration_changed.emit(self._duration)
 
     def __len__(self) -> int:
         return len(self._events)
 
-    def __getitem__(self, key: int) -> EventModel:
-        return self._events[key]
-
-    def before_event(self, event: EventModel) -> EventModel|None:
-        crt_index = self._events.index(event)
-        if crt_index > 0:
-            return self._events[crt_index - 1]
-        else:
-            return None
-
-    def after_event(self, event: EventModel) -> EventModel|None:
-        crt_index = self._events.index(event)
-        if crt_index < len(self._events) - 1:
-            return self._events[crt_index + 1]
-        else:
-            return None
+    def __getitem__(self, idx: int) -> EventModel:
+        return self._events[idx]
 
     def at_frame_id(self, frame_id: int) -> EventModel|None:
         """ event where first <= frame_id <= last """
@@ -66,6 +47,9 @@ class TimeLineModel(QObject):
             if frame_id in event:
                 return event
         return None
+
+    def in_range(self, first: int, last: int) -> List[EventModel]:
+        return [event for event in self._events if event.intersects(first, last)]
 
     def before_frame_id(self, frame_id: int, default=None) -> EventModel|None:
         """ last event where last < frame_id """
@@ -81,58 +65,19 @@ class TimeLineModel(QObject):
                 return event
         return default
 
-    def can_add_ponctual(self, frame_id: int) -> bool:
-        return (0 <= frame_id <= self._duration) \
-            and all([not event.intersects(frame_id, frame_id) for event in self._events])
+    def can_add(self, first: int, last: int) -> bool:
+        assert last >= first
+        if not (0 <= first): return False
+        if not (last < self._duration): return False
+        return not self.in_range(first, last)
 
-    def add_ponctual(self, frame_id: int, label: str="") -> PonctualEventModel:
-        assert self.can_add_ponctual(frame_id)
-        prv     = self.before_frame_id(frame_id, 0)
-        nxt     = self.after_frame_id(frame_id, self._duration)
-        event   = PonctualEventModel(prv, nxt, frame_id, label)
-        self._insert_event(event)
-        return event
-
-    def can_add_range(self, first: int, last: int|None = None) -> bool:
-        if last is None:
-            last = first + 1
-        return (0 <= first <= self._duration) \
-            and (0 <= last <= self._duration) \
-            and (first < last) \
-            and all([not event.intersects(first, last) for event in self._events])
-
-    def add_range(self, first: int, last: int|None = None, label: str="") -> RangeEventModel:
-        if last is None:
-            last = first + 1
-        assert self.can_add_range(first, last)
+    def add(self, first: int, last: int, label: str="", parent: QObject|None=None) -> EventModel:
+        assert self.can_add(first, last)
         prv     = self.before_frame_id(first, 0)
-        nxt     = self.after_frame_id(last, self._duration)
-        event   = RangeEventModel(prv, nxt, first, last, label)
+        nxt     = self.after_frame_id(last, self._duration-1)
+        event   = EventModel(first, last, prv, nxt, label, parent)
         self._insert_event(event)
         return event
-
-    def can_to_ponctual(self, event: EventModel, frame_id: int) -> bool:
-        if not isinstance(event, RangeEventModel): return False
-        return frame_id in event
-
-    def to_ponctual(self, event: EventModel, frame_id: int) -> PonctualEventModel:
-        assert self.can_to_ponctual(event, frame_id)
-        self.rem(event)
-        return self.add_ponctual(frame_id, event.label)
-
-    def can_to_range(self, event: EventModel, frame_id: int) -> bool:
-        if not isinstance(event, PonctualEventModel): return False
-        if frame_id == self._duration -1: return False
-        return (frame_id in event) and (
-            ((frame_id + 1) <= event.last) or 
-            isinstance(event.nxt_event, int) or
-            ((frame_id + 1) < event.nxt_event.first)
-        )
-
-    def to_range(self, event: EventModel, frame_id: int) -> RangeEventModel:
-        assert self.can_to_range(event, frame_id)
-        self.rem(event)
-        return self.add_range(frame_id, frame_id + 1, event.label)
 
     def _insert_event(self, event: EventModel):
         # update neighboors

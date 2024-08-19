@@ -1,68 +1,55 @@
 from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal
-from src.models.timeline import TimeLineModel
+from src.models.timeline import TimelineModel
 from typing import List
 import itertools as it
 
 
-class TimeLineListModel(QObject):
-    timeline_added              = pyqtSignal(TimeLineModel)
-    timeline_removed            = pyqtSignal(TimeLineModel)
-    selected_timeline_changed   = pyqtSignal(object, object) # (TimeLineModel|None, TimeLineModel|None)
+class TimelineListModel(QObject):
+    timeline_added              = pyqtSignal(TimelineModel)
+    "SIGNAL: timeline_added(timeline: TimelineModel)"
+    timeline_removed            = pyqtSignal(TimelineModel)
+    "SIGNAL: timeline_removed(timeline: TimelineModel)"
     _nxt_item_id                = it.count()
     
     def __init__(self, duration: int, parent: QObject|None=None):
         QObject.__init__(self, parent)
         self._duration              = duration
-        self._items:                List[TimeLineModel] = []
-        self._selected_timeline:    TimeLineModel|None = None
+        self._timelines:            List[TimelineModel] = []
+        self._selected_timeline:    TimelineModel|None = None
     
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} #{len(self)}>"
+        return f"<{self.__class__.__name__} #{len(self._timelines)}>"
 
     def __len__(self) -> int:
-        return len(self._items)
+        return len(self._timelines)
 
-    def __getitem__(self, key: int|str) -> TimeLineModel:
+    def __getitem__(self, key: int|str) -> TimelineModel:
         if isinstance(key, str):
-            key = self._items.index(self._names())
-        return self._items[key]
+            key = self._timelines.index(self.names())
+        return self._timelines[key]
 
-    @property
-    def selected_timeline(self) -> TimeLineModel|None:
-        return self._selected_timeline
-    @selected_timeline.setter
-    def selected_timeline(self, timeline: TimeLineModel|None):
-        if timeline != self._selected_timeline:
-            previous_timeline = self._selected_timeline
-            self._selected_timeline = timeline
-            self.selected_timeline_changed.emit(timeline, previous_timeline)
-
-    def _names(self) -> List[str]:
-        return [item.name for item in self._items]
+    def names(self) -> List[str]:
+        return [timeline.name for timeline in self._timelines]
     
-    def __contains__(self, name: str):
-        return name in self._names()
+    def __contains__(self, name: str) -> bool:
+        return name in self.names()
     
-    def add(self, name: str|None=None, select: bool=True) -> TimeLineModel:
+    def add(self, name: str|None=None) -> TimelineModel:
         if name is None:
             name = self._gen_item_name()
         else:
             assert name not in self
-        timeline = TimeLineModel(self._duration, name)
-        self._items.append(timeline)
+        timeline = TimelineModel(self._duration, name)
+        self._timelines.append(timeline)
         self.timeline_added.emit(timeline)
-        if select:
-            self.selected_timeline = timeline
         return timeline
     
     @classmethod
     def _gen_item_name(cls) -> str:
-        return f"TimeLine {next(cls._nxt_item_id)}"
+        return f"Timeline {next(cls._nxt_item_id)}"
     
-    def rem(self, timeline: TimeLineModel) -> TimeLineModel:
-        if timeline is self._selected_timeline:
-            self.selected_timeline = None
-        self._items.remove(timeline)
+    def rem(self, timeline: TimelineModel) -> TimelineModel:
+        self._timelines.remove(timeline)
         self.timeline_removed.emit(timeline)
         return timeline
