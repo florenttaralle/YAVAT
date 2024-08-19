@@ -15,7 +15,7 @@ class SaveAndLoad:
     def pick_and_load(self):
         filename,  _ = QFileDialog.getOpenFileName(None, "Load YAVAT annotations", 
                                             self._base_folder, 
-                                            "YAVAT Annotations (*.json *.yavat)")
+                                            "YAVAT Annotations (*.json, *.yavat)")
         if filename == '': return
         self.load_file(filename)
 
@@ -25,7 +25,7 @@ class SaveAndLoad:
             else os.path.splitext(self._video_file.path)[0] + ".yavat"
         filename, _ = QFileDialog.getSaveFileName(None, "Save AYAT annotations",
                                                 default_path,
-                                                "YAVAT Annotations (*.json *.yavat)")
+                                                "YAVAT Annotations (*.json, *.yavat)")
         if filename == '': return
         self.save_file(filename)
 

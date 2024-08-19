@@ -31,7 +31,7 @@ else:
     # try to auto-find .yavat with same name
     labels_path = os.path.splitext(args.video_path)[0] + ".yavat"
     if os.path.exists(labels_path):
-        save_n_load.load_file(args.labels_path)
+        save_n_load.load_file(labels_path)
 
 # views
 player_view         = Player(video_file)
@@ -58,6 +58,7 @@ act_save.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_S))
 act_save.triggered.connect(save_n_load.pick_and_save)
 file_menu.addSeparator()
 act_quit = file_menu.addAction(Icons.Quit.icon(), "&Quit")
+act_quit.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Q))
 act_quit.triggered.connect(app.quit)
 
 window.show()
