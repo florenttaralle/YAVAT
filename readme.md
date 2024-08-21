@@ -17,12 +17,14 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 - Create/Name/Delete Annotation Timelines.
 - Create/Label/Delete Events on a timeline.
 - Save/Load Annotations in a JSON-based YAVAT File.
+- Show named timeseries stored in the annotation file.
 
 ## TODO / Suggestions
 
 - Implement moving event to another timeline.
 - Implement Annotation Grid (like in ELAN)
-- Implement TimeSeries. (not editable)
+- Import timeseries from CSV file.
+- Delete timeseries.
 
 ## Getting Started
 
@@ -81,6 +83,28 @@ I use this tool a lot myself.
 - `Delete`:                     Delete the event.
 - `Ctrl + Shift + LeftArrow`:   Move the left boundary of the event forward to the current time position.
 - `Ctrl + Shift + RightArrow`:  Move the right boundary of the event backward to the current time position.
+
+## About Timeseries
+
+Timeseries are simple 2D line plots. The objective here is not to allow editing them but to show graphs synchronised with the timelines.
+At the moment, the only way to add timeseries is to inject them in the annotation file (manualy or programmatically).
+
+``` json
+{
+  "video": { ... },
+  "timelines": [...], 
+  "timeseries": [
+    {
+      "name":       "Timeseries Name",
+      "y_min":      0.0,
+      "y_max":      1.0,
+      "xy_values":  [[x0, y0], [x1, y1], ..., [xn, yn]]
+    }
+  ]
+}
+```
+
+
 
 # Contributing
 

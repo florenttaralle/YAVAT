@@ -46,12 +46,12 @@ class SaveAndLoad:
                                 QMessageBox.StandardButton.Ok)
             return
         self._timeline_list.clear()
-        for timeline_data in data['timelines']:
+        for timeline_data in data.get('timelines', []):
             timeline = self._timeline_list.add(timeline_data["name"])
             for event_data in timeline_data['events']:
                 timeline.add(**event_data)
         self._timeseries_list.clear()
-        for timeseries_data in data['timeseries']:
+        for timeseries_data in data.get('timeseries', []):
             self._timeseries_list.add(**timeseries_data)
 
     def save_file(self, path: str):
