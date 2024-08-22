@@ -5,7 +5,7 @@ from typing import List, Tuple
 class TimeseriesModel(QObject):
     def __init__(self, 
                  name: str, 
-                 xy_values: List[Tuple[int, float]],
+                 xy_values: List[Tuple[int|float, float]],
                  y_min: float, y_max: float,
                  duration: int,
                  parent: QObject | None=None):

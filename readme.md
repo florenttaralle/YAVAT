@@ -25,6 +25,7 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 - Implement Annotation Grid (like in ELAN)
 - Import timeseries from CSV file.
 - Delete timeseries.
+- Choose timeline & timeseries color.
 
 ## Getting Started
 
