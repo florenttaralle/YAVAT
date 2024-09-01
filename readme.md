@@ -16,7 +16,6 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 
 ### Version 1.0.0
 
-- Move Annotations Up/Down
 - Create/Edit/Delete Annotation Timelines.
 - Create/Edit/Delete Events on a timeline.
 - Move an event to another timeline.
@@ -25,6 +24,7 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 
 ### TODO / Suggestions
 
+- Move Annotations Up/Down
 - Manage timeseries
 - Import timeseries from CSV file.
 - Implement Annotation Grid (like in ELAN)
