@@ -1,6 +1,5 @@
 from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal
-from src.models.video_file import VideoFile
 
 class TimeWindowModel(QObject):
     window_changed      = pyqtSignal(int, int, int) 
@@ -30,14 +29,9 @@ class TimeWindowModel(QObject):
         self._zoom_step = zoom_step
         self._min_size  = min_size
         
-    @classmethod
-    def from_video_file(cls, video_file: VideoFile, **kwargs) -> TimeWindowModel:
-        time_window = cls(video_file.n_frames, video_file.frame_id, video_file.playing, **kwargs)
-        video_file.playing_changed.connect(lambda playing: TimeWindowModel.playing.__set__(time_window, playing))
-        video_file.frame_id_changed.connect(time_window.goto)
-        time_window.position_changed.connect(video_file.gotoFrameId)
-        return time_window
-    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} #{self._duration} @{self._position} on [{self._left};{self._right}]>"
+        
     @property
     def left(self) -> int:
         return self._left
@@ -61,8 +55,7 @@ class TimeWindowModel(QObject):
     @property
     def position(self) -> int:
         return self._position
-    @position.setter
-    def position(self, position: int):
+    def set_position(self, position: int):
         self.goto(position)
 
     def goto(self, position: int):
@@ -74,11 +67,13 @@ class TimeWindowModel(QObject):
             self.position_changed.emit(position)
             self.window_changed.emit(self._left, self._position, self._right)
     
+    def move(self, delta_position: int):
+        self.goto(self.position + delta_position)
+    
     @property
     def size(self) -> int:
         return self._size
-    @size.setter
-    def size(self, size: int):
+    def set_size(self, size: int):
         if size != self._size:
             self._size = size
             self.size_changed.emit(self._size)
@@ -92,20 +87,19 @@ class TimeWindowModel(QObject):
     @property
     def playing(self) -> bool:
         return self._playing
-    @playing.setter
-    def playing(self, playing: bool):
+    def set_playing(self, playing: bool):
         if playing != self._playing:
             self._playing = playing
             self.playing_changed.emit(playing)
     
     def zoom_in(self):
-        self.size = max(self._min_size, int(self._size / self._zoom_step))
+        self.set_size(max(self._min_size, int(self._size / self._zoom_step)))
 
     def zoom_out(self):
-        self.size = min(self._duration, int(self._size * self._zoom_step))
+        self.set_size(min(self._duration, int(self._size * self._zoom_step)))
         
     def reset(self):
-        self.size = self._duration
+        self.set_size(self._duration)
 
     def _update_bounds(self) -> bool:
         changed = False

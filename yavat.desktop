@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=Yavat
+Comment=Yavat (Yet Another Annotation Tool) is a simple video frame-wise event annotation application.
+Exec=/home/florent/Documents/projects/YAVAT/yavat.py
+Path=/home/florent/Documents/projects/YAVAT
+Icon=/home/florent/Documents/projects/YAVAT/assets/icons/yavat.png
+Terminal=false
+Type=Application
+Categories=Utility;
+MimeType=application/x-yavat
+URL=https://github.com/florenttaralle/YAVAT

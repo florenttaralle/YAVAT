@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QSlider, QStyle, QStyleOptionSlider
-from src.models.video_file import VideoFile
+from src.models.video import VideoModel
 
 class PlayerSlider(QSlider):
     STYLESHEET = """
@@ -26,26 +26,44 @@ class PlayerSlider(QSlider):
         }        
     """
     
-    def __init__(self, video_file: VideoFile, parent: QWidget|None=None):
+    def __init__(self, video: VideoModel|None=None, parent: QWidget|None=None):
         QSlider.__init__(self, Qt.Orientation.Horizontal, parent)
-        self._video_file = video_file
+        self._video: VideoModel|None = None
         self.setStyleSheet(self.STYLESHEET)
-        video_file.ready_changed.connect(self.onVideoFileReadyChanged)
-        video_file.frame_id_changed.connect(self.setValue)
-        self.sliderMoved.connect(lambda: self._video_file.gotoFrameId(self.value()))
         self.setFixedHeight(5)
+        self.set_video(video)
+        self.sliderMoved.connect(self.onSliderMoved)
+        self.set_video(video)
 
-    def onVideoFileReadyChanged(self, ready: bool):
-        self.setEnabled(self._video_file.valid)
-        if self._video_file.valid:
-            self.setMaximum(self._video_file.n_frames - 1)
-            self.setValue(self._video_file.frame_id)
+    def set_video(self, video: VideoModel|None):
+        if self._video is not None:
+            self._video.ready_changed.disconnect(self.onVideoReadyChanged)
+            self._video.frame_id_changed.disconnect(self.setValue)            
+        self._video = video
+        if self._video is not None:
+            self._video.ready_changed.connect(self.onVideoReadyChanged)
+            self._video.frame_id_changed.connect(self.setValue)
+            self.onVideoReadyChanged(self._video.ready)
+        else:
+            self.setRange(0, 100)
+            self.setValue(100)
+            self.setEnabled(False)
+
+    def onSliderMoved(self):
+        if self._video is not None:
+            self._video.gotoFrameId(self.value())
+
+    def onVideoReadyChanged(self, ready: bool):
+        self.setEnabled(self._video.valid)
+        if self._video.valid:
+            self.setMaximum(self._video.n_frames - 1)
+            self.setValue(self._video.frame_id)
 
     def mousePressEvent(self, event):
         QSlider.mousePressEvent(self, event)
         if event.button() == Qt.MouseButton.LeftButton:
             frame_id = self.pixelPosToRangeValue(event.pos())
-            self._video_file.gotoFrameId(frame_id)
+            self._video.gotoFrameId(frame_id)
         
     def pixelPosToRangeValue(self, pos):
         opt = QStyleOptionSlider()

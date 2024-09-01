@@ -1,8 +1,11 @@
+from __future__ import annotations
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
+from PyQt6.QtWidgets import QGraphicsSceneMouseEvent
 from src.models.event import EventModel
 from enum import Enum, auto
+from src.views.dialogs.event_editor import EventEditorDialog
 
 class EventViewState(Enum):
     Outside         = auto()
@@ -12,13 +15,13 @@ class EventViewState(Enum):
     MovingBody      = auto()
     MovingLeftHdl   = auto()
     MovingRightHdl  = auto()
-    
+
 class EventView(QGraphicsObject):
-    double_click    = pyqtSignal(EventModel)
-    "SIGNAL: double_click(event: EventModel)"
-    
     ADD_W: float = .2
     HDL_W: float = .2
+    
+    left_click = pyqtSignal(object, int)
+    "SIGNAL: left_click(event: EventView, frame_id: int)"
     
     def __init__(self, event: EventModel, color: QColor, parent: QGraphicsItem|None=None):
         QGraphicsObject.__init__(self, parent)
@@ -42,6 +45,10 @@ class EventView(QGraphicsObject):
         self._press_x:          int = None
         event.first_changed.connect(self.onEventFirstChanged)
         event.last_changed.connect(self.onEventLastChanged)
+
+    def set_color(self, color: QColor):
+        self._color = color
+        self.update()
 
     def _update_geometry(self):
         self.prepareGeometryChange()
@@ -81,10 +88,6 @@ class EventView(QGraphicsObject):
                 self.setCursor(Qt.CursorShape.SplitHCursor)
         self.update()
 
-    def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent):
-        QGraphicsObject.mouseDoubleClickEvent(self, event)
-        self.double_click.emit(self._event)
-
     def hoverEnterEvent(self, event: QGraphicsSceneHoverEvent):
         QGraphicsObject.hoverEnterEvent(self, event)
         # required for keyPressEvent
@@ -123,16 +126,28 @@ class EventView(QGraphicsObject):
             self._set_state(EventViewState.OverBody)
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
-        if event.button() != Qt.MouseButton.LeftButton: return
-        self._press_x = event.pos().x()
-        match self._state:
-            case EventViewState.OverBody:
-                self._set_state(EventViewState.MovingBody)
-            case EventViewState.OverLeftHdl:
-                self._set_state(EventViewState.MovingLeftHdl)
-            case EventViewState.OverRightHdl:
-                self._set_state(EventViewState.MovingRightHdl)
-        event.accept()
+        # ignore double clicks
+        if (event.type() == QEvent.Type.GraphicsSceneMouseDoubleClick):
+            QGraphicsObject.mousePressEvent(self, event)
+        # manage only left clicks
+        elif event.button() != Qt.MouseButton.LeftButton: 
+            QGraphicsObject.mousePressEvent(self, event)
+        # ignore click if shift pressed
+        elif event.modifiers() == Qt.KeyboardModifier.ShiftModifier:
+            QGraphicsObject.mousePressEvent(self, event)
+            self.left_click.emit(self, round(event.pos().x()))
+        else:
+            # manage depending on state
+            self._press_x = event.pos().x()
+            match self._state:
+                case EventViewState.OverBody:
+                    self._set_state(EventViewState.MovingBody)
+                case EventViewState.OverLeftHdl:
+                    self._set_state(EventViewState.MovingLeftHdl)
+                case EventViewState.OverRightHdl:
+                    self._set_state(EventViewState.MovingRightHdl)
+            self.left_click.emit(self, round(event.pos().x()))
+
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         # when mouse pressed (moving)
@@ -141,20 +156,20 @@ class EventView(QGraphicsObject):
                 offsetX     = event.pos().x() - self._press_x
                 closestX0   = round(self._event.first + offsetX)
                 closestX1   = round(self._event.last + offsetX)
-                if (closestX0 >= self._leftLimit()) and (closestX1 <= self._rightLimit()) and (closestX0 != self._event.first):
-                    self._press_x       += closestX0 - self._event.first
-                    self._event.first   = closestX0
-                    self._event.last    = closestX1
+                if (closestX0 >= self._event.first_min) and (closestX1 <= self._event.last_max) and (closestX0 != self._event.first):
+                    self._press_x += closestX0 - self._event.first
+                    self._event.set_first(closestX0)
+                    self._event.set_last(closestX1)
 
             case EventViewState.MovingLeftHdl:
                 closestFrameId = round(event.pos().x())
-                if (closestFrameId >= self._leftLimit()) and (closestFrameId <= self._event.last):
-                    self._event.first = closestFrameId
+                if (closestFrameId >= self._event.first_min) and (closestFrameId <= self._event.first_max):
+                    self._event.set_first(closestFrameId)
             
             case EventViewState.MovingRightHdl:
                 closestFrameId = round(event.pos().x())
-                if (closestFrameId <= self._rightLimit()) and (closestFrameId >= self._event.first):
-                    self._event.last = closestFrameId
+                if (closestFrameId >= self._event.last_min) and (closestFrameId <= self._event.last_max):
+                    self._event.set_last(closestFrameId)
         event.accept()
 
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
@@ -165,6 +180,12 @@ class EventView(QGraphicsObject):
                 self._set_state(EventViewState.OverLeftHdl)
             case EventViewState.MovingRightHdl:
                 self._set_state(EventViewState.OverRightHdl)
+
+    # def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent):
+    #     QGraphicsObject.mouseDoubleClickEvent(self, event)
+    #     if event.isAccepted(): return
+    #     EventEditorDialog().exec(self._event)
+    #     event.accept()
 
     def _set_hdl_hidden(self, hdl_hidden: bool):
         if hdl_hidden != self._hdl_hidden:
@@ -214,18 +235,6 @@ class EventView(QGraphicsObject):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(self._color)
         painter.drawRect(self._inner_rect)
-
-    def _leftLimit(self) -> int:
-        if isinstance(self._event.prv_event, EventModel):
-            return self._event.prv_event.last + 1
-        else:
-            return self._event.prv_event
-    
-    def _rightLimit(self) -> int:
-        if isinstance(self._event.nxt_event, EventModel):
-            return self._event.nxt_event.first - 1
-        else:
-            return self._event.nxt_event
 
     def onEventFirstChanged(self, frame_id: int):
         self._update_geometry()

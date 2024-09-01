@@ -11,7 +11,7 @@ class VideoStreamInfo:
     
     @property
     def n_frames(self) -> int:
-        return self.duration_s * self.fps
+        return int(self.duration_s * self.fps)
 
     @classmethod
     def load(cls, video_path: str) -> VideoStreamInfo:

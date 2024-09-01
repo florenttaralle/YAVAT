@@ -2,15 +2,15 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QToolBar
 from PyQt6.QtGui import QAction, QKeySequence
 from src.icons import Icons
-from src.models.video_file import VideoFile
+from src.models.video import VideoModel
 from src.widgets.spacer import Spacer
 from src.views.position_editor import PositionEditor
 from src.views.frame_id_editor import FrameIdEditor
 
 class PlayerBarView(QToolBar):
-    def __init__(self, video_file: VideoFile, parent: QWidget|None = None):
+    def __init__(self, video: VideoModel|None=None, parent: QWidget|None = None):
         QToolBar.__init__(self, parent)
-        self._video_file = video_file
+        self._video: VideoModel|None = None
         self.setMovable(False)
 
         self._play_act = QAction()
@@ -28,15 +28,15 @@ class PlayerBarView(QToolBar):
         self.addAction(self._backward_act)
 
         self._backward_step_act = QAction()
-        self._backward_step_act.setToolTip("Move Backward 1 frame (Ctrl+LeftArrow)")
+        self._backward_step_act.setToolTip("Move Backward 1 frame (Ctrl + LeftArrow)")
         self._backward_step_act.triggered.connect(self.onBackwardStep)
         self._backward_step_act.setIcon(Icons.BackwardStep.icon())
         self._backward_step_act.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Left))
         self.addAction(self._backward_step_act)
 
-        self._frame_id_editor = FrameIdEditor(video_file)
+        self._frame_id_editor = FrameIdEditor()
         self.addWidget(self._frame_id_editor)
-        self._position_editor = PositionEditor(video_file)
+        self._position_editor = PositionEditor()
         self.addWidget(self._position_editor)
 
         self._forward_step_act = QAction()
@@ -60,43 +60,56 @@ class PlayerBarView(QToolBar):
         self._sound_act.setShortcut(Qt.Key.Key_M)
         self.addAction(self._sound_act)
                 
-        self._video_file.ready_changed.connect(self.onVideoFileReadyChanged)
-        self._video_file.player.playingChanged.connect(self.onVideoFilePlayingChanged)
+        self.set_video(video)
 
-    def onVideoFileReadyChanged(self, ready: bool):
-        self.setEnabled(self._video_file.valid)
-        if self._video_file.valid:
-            self.onVideoFilePlayingChanged(self._video_file.player.isPlaying())
-            if self._video_file.player.hasAudio():
-                self._video_file._audio_output.mutedChanged.connect(self.onVideoFileMutedChanged)
-                self.onVideoFileMutedChanged(self._video_file._audio_output.isMuted())
+    def set_video(self, video: VideoModel|None):
+        self._frame_id_editor.set_video(video)
+        self._position_editor.set_video(video)
+        if self._video is not None:
+            self._video.ready_changed.disconnect(self.onVideoReadyChanged)
+            self._video.player.playingChanged.disconnect(self.onVideoPlayingChanged)
+        self._video = video
+        if self._video is not None:
+            self._video.ready_changed.connect(self.onVideoReadyChanged)
+            self._video.player.playingChanged.connect(self.onVideoPlayingChanged)
+            self.onVideoReadyChanged(self._video.ready)
+        else:
+            self.setEnabled(False)
+
+    def onVideoReadyChanged(self, ready: bool):
+        self.setEnabled(self._video.valid)
+        if self._video.valid:
+            self.onVideoPlayingChanged(self._video.playing)
+            if self._video.player.hasAudio():
+                self._video._audio_output.mutedChanged.connect(self.onVideoMutedChanged)
+                self.onVideoMutedChanged(self._video._audio_output.isMuted())
             else:
                 self._sound_act.setEnabled(False)
                 self._sound_act.setIcon(Icons.Mute.icon())
                 self._sound_act.setToolTip("No Audio Stream")
 
-    def onVideoFilePlayingChanged(self, playing: bool):
+    def onVideoPlayingChanged(self, playing: bool):
         self._play_act.setIcon(Icons.Pause.icon() if playing else Icons.Play.icon())
-        self._play_act.setToolTip("Pause" if playing else "Play")
+        self._play_act.setToolTip("Pause (Space)" if playing else "Play (Space)")
 
-    def onVideoFileMutedChanged(self, muted: bool):
+    def onVideoMutedChanged(self, muted: bool):
         self._sound_act.setIcon(Icons.Mute.icon() if muted else Icons.Sound.icon())
-        self._sound_act.setToolTip("Un-Mute" if muted else "Mute")
+        self._sound_act.setToolTip("Un-Mute (M)" if muted else "Mute (M)")
 
     def onActPlay(self):
-        if self._video_file.player.isPlaying():
-            self._video_file.pause()
+        if self._video.player.isPlaying():
+            self._video.pause()
         else:
-            self._video_file.play()
+            self._video.play()
         
     def onActSound(self):
-        self._video_file._audio_output.setMuted(not self._video_file._audio_output.isMuted())
+        self._video._audio_output.setMuted(not self._video._audio_output.isMuted())
         
     def onBackward(self): 
-        self._move(-round(self._video_file.fps))
+        self._move(-round(self._video.fps))
     
     def onForward(self): 
-        self._move(round(self._video_file.fps))
+        self._move(round(self._video.fps))
 
     def onBackwardStep(self, n_frames: int=1):
         self._move(-1)
@@ -105,7 +118,7 @@ class PlayerBarView(QToolBar):
         self._move(1)
 
     def _move(self, n_frames: int):
-        frame_id        = self._video_file.frame_id
-        new_frame_id    = (frame_id +n_frames) % self._video_file.n_frames
-        self._video_file.gotoFrameId(new_frame_id)
+        frame_id        = self._video.frame_id
+        new_frame_id    = (frame_id + n_frames) % self._video.n_frames
+        self._video.gotoFrameId(new_frame_id)
 

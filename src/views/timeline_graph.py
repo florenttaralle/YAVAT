@@ -1,86 +1,52 @@
-from PyQt6.QtCore import Qt, QPoint, QPointF, pyqtSignal
-from PyQt6.QtWidgets import QWidget, QGraphicsRectItem, QGraphicsLineItem, QGraphicsView
-from PyQt6.QtGui import QColor, QColorConstants, QPen, QMouseEvent, QContextMenuEvent, QWheelEvent
-import pyqtgraph as pg
-from src.models.time_window import TimeWindowModel
+from PyQt6.QtWidgets import QWidget, QGraphicsRectItem
+from PyQt6.QtGui import QColorConstants, QPen, QColor
+from typing import Mapping
+from src.models.timeline import TimelineModel, EventModel
+from src.views.graph import GraphView, TimeWindowModel
+from src.views.event import EventView
 
-
-class TimelineGraphView(pg.PlotWidget):
-    context_menu = pyqtSignal(int, QContextMenuEvent)
-    "SIGNAL: context_menu(frame_id: int, event: QContextMenuEvent)"
-    
-    def __init__(self, time_window: TimeWindowModel, color: QColor, parent: QWidget|None=None):
-        pg.PlotWidget.__init__(self, parent)
-        self._time_window   = time_window
-        self.setMenuEnabled(False)
-        self.setBackgroundBrush(QColorConstants.Transparent)
-        self.showAxis('left', False)
-        self.showAxis('bottom', False)
-        self.hideButtons()
-        self.setXRange(time_window.left, time_window.right, 0.01)
-        time_window.window_changed.connect(self._update_time_window)
+class TimelineGraphView(GraphView):
+    def __init__(self, time_window: TimeWindowModel, timeline: TimelineModel, parent: QWidget|None=None):
+        GraphView.__init__(self, time_window, parent)
         self.setYRange(0, 1, .05)
+        self._timeline = timeline
+        self._views: Mapping[EventModel, EventView] = {}
 
         # add the border
         self._border = QGraphicsRectItem(0, .1, time_window.duration-1, .8)
         self._border.setBrush(QColorConstants.Transparent)
+        self.onTimelineColorChanged(timeline.color)
+        self._border.setOpacity(.6)
+        self.addItem(self._border)
+
+        # add existing events
+        for event in timeline:
+            self.onEventAdded(event)
+
+        # connect signals & slots
+        self._timeline.event_added.connect(self.onEventAdded)
+        self._timeline.event_removed.connect(self.onEventRemoved)
+        self._timeline.color_changed.connect(self.onTimelineColorChanged)
+        
+    def onTimelineColorChanged(self, color: QColor):
         pen = QPen(color)
         pen.setWidth(4)
         pen.setCosmetic(True)
         self._border.setPen(pen)
-        self._border.setOpacity(.6)
-        self.addItem(self._border)
 
-        # add the time position line
-        self._position_line = QGraphicsLineItem(time_window.position, 0, time_window.position, 1)
-        pen = QPen(QColorConstants.Red)
-        pen.setCosmetic(True)
-        pen.setWidth(3)
-        self._position_line.setPen(pen)
-        self._position_line.setZValue(1)
-        self.addItem(self._position_line)
-
-    @property
-    def color(self) -> QColor:
-        return self._border.pen().color()
-    @color.setter
-    def color(self, color: QColor):
-        self._border.pen().setColor(color)
-
-    def _update_time_window(self, left: int, position: int, right: int):
-        self.setXRange(left, right, .01)
-        self._position_line.setLine(position, 0, position, 1)
-
-    def mousePressEvent(self, event: QMouseEvent):
-        QGraphicsView.mousePressEvent(self, event)
-        if event.isAccepted(): return
-        if event.button() == Qt.MouseButton.LeftButton:
-            frame_id = self._frame_id(event.pos())
-            self._time_window.goto(frame_id)
-        event.accept()
-
-    def contextMenuEvent(self, event: QContextMenuEvent):
-        QGraphicsView.contextMenuEvent(self, event)
-        if event.isAccepted(): return
-        frame_id = self._frame_id(event.pos())
-        self.context_menu.emit(frame_id, event)
-        event.accept()
+    def onEventAdded(self, event: EventModel):
+        view = EventView(event, self._timeline.color)
+        view.left_click.connect(self.onEventLeftClick)
+        self._timeline.color_changed.connect(view.set_color)
+        self._views[event] = view
+        self.addItem(view)
     
-    def wheelEvent(self, event: QWheelEvent):
-        ctrl_pressed = (event.modifiers() == Qt.KeyboardModifier.ControlModifier)
-        angle = event.angleDelta()
-        if ctrl_pressed and ((angle.x() == 0) or (angle.y() == 0)):
-            if angle.y() != 0:
-                if angle.y() > 0:   
-                    # wheel down
-                    self._time_window.zoom_in()
-                else:
-                    # wheel up
-                    self._time_window.zoom_out()
-        event.accept()
+    def onEventLeftClick(self, event: EventModel, frame_id: int):
+        self._time_window.goto(frame_id)
 
-    def _frame_id(self, point: QPointF | QPoint) -> int:
-        if isinstance(point, QPoint):
-            point = QPointF(point)
-        frame_id = round(self.plotItem.vb.mapSceneToView(point).x())
-        return frame_id 
+    def onEventRemoved(self, event: EventModel):
+        view = self._views[event]
+        view.left_click.disconnect(self.onEventLeftClick)
+        self._timeline.color_changed.disconnect(view.set_color)
+        del self._views[event]
+        self.removeItem(view)

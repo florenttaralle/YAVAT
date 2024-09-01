@@ -2,18 +2,25 @@ from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal, QUrl, QTime
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QAudioDevice, QMediaDevices
 from src.video_stream_info import VideoStreamInfo
+from src.models.time_window import TimeWindowModel
 import os
 
-class VideoFile(QObject):
+class VideoModel(QObject):
     ready_changed       = pyqtSignal(bool)
+    "SIGNAL: ready_changed(ready: bool)"
     error_changed       = pyqtSignal(str)
+    "SIGNAL: error_changed(error: str)"
     frame_id_changed    = pyqtSignal(int)
+    "SIGNAL: frame_id_changed(frame_id: int)"
     position_changed    = pyqtSignal(QTime)
+    "SIGNAL: position_changed(position: QTime)"
     playing_changed     = pyqtSignal(bool)
+    "SIGNAL: playing_changed(playing: bool)"
     
     def __init__(self, video_path: str, parent: QObject|None = None):
         QObject.__init__(self, parent)
         self._video_path    = video_path
+        self._time_window:  TimeWindowModel|None = None
         self._error:        str = ""
         self._ready:        bool = False
         self._stream_info:  VideoStreamInfo | None = None
@@ -24,7 +31,6 @@ class VideoFile(QObject):
         self._player.mediaStatusChanged.connect(self.onPlayerMediaStatusChanged)
         self._player.positionChanged.connect(self.onPlayerPositionChanged)
         self._player.playbackStateChanged.connect(self.onPlayerPlaybackStateChanged)
-        self._player.playbackStateChanged
 
         # load video stream info (so it is always available)
         try:
@@ -44,6 +50,10 @@ class VideoFile(QObject):
             "width":            self._stream_info.width,
             "height":           self._stream_info.height,            
         }
+
+    @property
+    def time_window(self) -> TimeWindowModel|None:
+        return self._time_window
 
     @property
     def player(self) -> QMediaPlayer:
@@ -119,6 +129,12 @@ class VideoFile(QObject):
         if position != self.position:
             self._player.setPosition(position.msecsSinceStartOfDay())
 
+    def _set_time_window(self, time_window: TimeWindowModel):
+        self._time_window = time_window
+        self._time_window.position_changed.connect(self.gotoFrameId)
+        self.frame_id_changed.connect(self._time_window.set_position)
+        self.playing_changed.connect(self._time_window.set_playing)
+
     def onPlayerMediaStatusChanged(self, status: QMediaPlayer.MediaStatus):
         match status:
             case QMediaPlayer.MediaStatus.LoadingMedia:
@@ -128,6 +144,8 @@ class VideoFile(QObject):
                 self._error = self._player.errorString()
                 self._set_ready(True)
             case QMediaPlayer.MediaStatus.LoadedMedia:
+                time_window = TimeWindowModel(self.n_frames, self.frame_id, self.playing)
+                self._set_time_window(time_window)
                 self._set_ready(True)
     
     def onPlayerPlaybackStateChanged(self, state: QMediaPlayer.PlaybackState):

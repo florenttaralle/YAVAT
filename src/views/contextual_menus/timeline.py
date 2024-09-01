@@ -5,6 +5,8 @@ from PyQt6.QtGui import QCursor
 from src.models.timeline import TimelineModel, EventModel
 from src.models.time_window import TimeWindowModel
 from src.icons import Icons
+from src.views.dialogs.event_editor import EventEditorDialog
+from src.views.dialogs.annotation_editor import AnnotationEditorDialog
 # ##################################################################
 
 class TimelineContextualMenu(QMenu):
@@ -19,7 +21,11 @@ class TimelineContextualMenu(QMenu):
         self._act_goto.triggered.connect(self.onGoto)
         self.addSeparator()
 
-        self._act_add = self.addAction(Icons.EventAdd.icon(), "&Add Event starting here")
+        self._act_edit_timeline = self.addAction(Icons.Timeline.icon(), "Edit &Timeline")
+        self._act_edit_timeline.triggered.connect(self.onEditTimeline)
+        self.addSeparator()
+
+        self._act_add = self.addAction(Icons.EventAdd.icon(), "&Add Event here")
         self._act_add.triggered.connect(self.onCreateEvent)
 
         self._act_edit = self.addAction(Icons.EventInfo.icon(), "&Edit Event")
@@ -40,10 +46,14 @@ class TimelineContextualMenu(QMenu):
         self._time_window.goto(self._frame_id)
     
     def onCreateEvent(self):
-        self._timeline.add(self._frame_id, self._frame_id)
+        self._timeline.add(EventModel(self._frame_id, self._frame_id))
 
     def onDeleteEvent(self):
-        self._timeline.rem(self._event)
+        self._timeline.remove(self._event)
     
     def onEditEvent(self):
-        print(f"On Edit Event {self._event}")
+        if EventEditorDialog().exec(self._event):
+            self._time_window.goto(self._frame_id)
+
+    def onEditTimeline(self):
+        AnnotationEditorDialog().exec(self._timeline)

@@ -6,6 +6,7 @@ from PyQt6.QtGui import QIcon
 class Icons(Enum):
     __ICON_FOLDER__ = "assets/icons/"
     Yavat           = "yavat.png"
+    Close           = "close.png"
     Quit            = "quit.png"
 
     Mute            = "mute.png"
@@ -22,6 +23,9 @@ class Icons(Enum):
     ZoomOut         = "zoom_out.png"
     ZoomReset       = "zoom_reset.png"
 
+    MoveUp          = "arrow_up.png"
+    MoveDown        = "arrow.down.png"
+
     Event           = "event.png"
     EventAdd        = "event_add.png"
     EventInfo       = "event_info.png"
@@ -30,6 +34,8 @@ class Icons(Enum):
     Timeline        = "timeline.png"
     TimelineAdd     = "timeline_add.png"
     TimelineRem     = "timeline_rem.png"
+
+    Timeseries      = "timeseries.png"
     
     ArrowFromLeft   = "arrow_from_left.png"
     ArrowFromRight  = "arrow_from_right.png"
@@ -39,6 +45,9 @@ class Icons(Enum):
     Load            = "download.png"
     Save            = "upload.png"
     Edit            = "edit.png"
+    
+    Visible         = "visible.png"
+    Hidden          = "hidden.png"
     
     def icon(self) -> QIcon:
         return QIcon(self.__ICON_FOLDER__ + self.value)

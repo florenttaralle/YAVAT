@@ -3,7 +3,7 @@
 ![](assets/Screenshot.png)
 
 Yet Another Video Annotation Tool meant to be easy to use. 
-Make video event annotations fast and easy.
+Make frame-wise video event annotations fast and easy.
 
 It focusses on simple time events only; not boxes, segmentation, ... 
 An event is defined by a start a stop and optionaly a string label.
@@ -12,20 +12,22 @@ An event can be ponctual: one-frame wide.
 
 Implementation in Python3. It uses PyQt6 and ffmpeg.
 
-## Features
+## Features 
 
-- Create/Name/Delete Annotation Timelines.
-- Create/Label/Delete Events on a timeline.
+### Version 1.0.0
+
+- Move Annotations Up/Down
+- Create/Edit/Delete Annotation Timelines.
+- Create/Edit/Delete Events on a timeline.
+- Move an event to another timeline.
 - Save/Load Annotations in a JSON-based YAVAT File.
 - Show named timeseries stored in the annotation file.
 
-## TODO / Suggestions
+### TODO / Suggestions
 
-- Implement moving event to another timeline.
-- Implement Annotation Grid (like in ELAN)
+- Manage timeseries
 - Import timeseries from CSV file.
-- Delete timeseries.
-- Choose timeline & timeseries color.
+- Implement Annotation Grid (like in ELAN)
 
 ## Getting Started
 
@@ -38,18 +40,38 @@ sudo apt install qtmultimedia
 sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
 ```
 
+Optionaly you can register the application to access it in the application pannel
+
+``` shell
+# register new mime-type
+xdg-mime install --novendor --mode user application-x-yavat.xml
+update-mime-database ~/.local/share/mime
+
+# register icon for the mime-type & the default 'hicolor' theme
+xdg-icon-resource install --context mimetypes --theme hicolor --size 64 assets/icons/yavat.png x-yavat
+# if you use another theme, you need ALSO to register for your theme
+# you can check what theme you are using with 
+gsettings get org.gnome.desktop.interface gtk-theme
+# update icons cache
+gtk-update-icon-cache --ignore-theme-index ~/.local/share/icons
+
+# register the application
+cp yavat.desktop ~/.local/share/applications/
+chmod +x ~/.local/share/applications/yavat.desktop
+update-desktop-database ~/.local/share/applications
+```
+
+
 ### Launching the App
 
 ``` shell
-usage: yavat.py [-h] [-l LABELS_PATH] [-t TIMELINE] video_path
+usage: yavat.py [-h] [path]
 
 positional arguments:
-  video_path
+  path: (optional) path of a video or .yavat file.
 
 options:
-  -h, --help            show this help message and exit
-  -l LABELS_PATH, --labels_path LABELS_PATH
-  -t TIMELINE, --timeline TIMELINE
+  -h, --help  show this help message and exit
 ```
 
 ## Application Shortcuts
@@ -58,15 +80,14 @@ UX has been designed to ensure that annotation experience is as fast and pleasan
 Shortcuts are provided to allow keyboard-only annotation.
 I use this tool a lot myself.
 
-
 ### Anytime
 
-- `M`:                      Mute/Unmute video.
 - `Space`:                  Play/Pause
 - `RightArrow`:             Move Forward 1 second
 - `LeftArrow`:              Move Backward 1 second
 - `Ctrl + RightArrow`:      Move Forward 1 frame
 - `Ctrl + LeftArrow`:       Move Backward 1 frame
+- `M`:                      Mute/Unmute video.
 - `UpArrow`:                Select previous timeline
 - `DownArrow`:              Select next timeline
 - `Ctrl`:                   Hide event handles (handy to move a ponctual event).
@@ -84,28 +105,6 @@ I use this tool a lot myself.
 - `Delete`:                     Delete the event.
 - `Ctrl + Shift + LeftArrow`:   Move the left boundary of the event forward to the current time position.
 - `Ctrl + Shift + RightArrow`:  Move the right boundary of the event backward to the current time position.
-
-## About Timeseries
-
-Timeseries are simple 2D line plots. The objective here is not to allow editing them but to show graphs synchronised with the timelines.
-At the moment, the only way to add timeseries is to inject them in the annotation file (manualy or programmatically).
-
-``` json
-{
-  "video": { ... },
-  "timelines": [...], 
-  "timeseries": [
-    {
-      "name":       "Timeseries Name",
-      "y_min":      0.0,
-      "y_max":      1.0,
-      "xy_values":  [[x0, y0], [x1, y1], ..., [xn, yn]]
-    }
-  ]
-}
-```
-
-
 
 # Contributing
 
