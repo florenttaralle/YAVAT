@@ -1,7 +1,7 @@
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
-from typing import Callable
+from typing import Callable, Tuple
 # ###########################################################
 from src.models.annotation_list import AnnotationListModel, AnnotationModel
 from src.models.time_window import TimeWindowModel
@@ -133,11 +133,13 @@ class AnnotationListBar(QToolBar):
 
         # - Goto Left (Crt-First/Prv-Last)
         self._act_goto_left = QAction(Icons.ArrowFromRight.icon(), "")
+        self._act_goto_left.setToolTip("Goto Nearest Previous Event Bound (Shit + Left)")
         self._act_goto_left.setShortcut(QKeySequence(Qt.Modifier.SHIFT | Qt.Key.Key_Left))
         self._act_goto_left.triggered.connect(self.onGotoLeft)
         self.addAction(self._act_goto_left)
         # - Goto Right (Crt-Last/Nxt-First)
         self._act_goto_right = QAction(Icons.ArrowFromLeft.icon(), "")
+        self._act_goto_right.setToolTip("Goto Nearest Next Event Bound (Shit + Right)")
         self._act_goto_right.setShortcut(QKeySequence(Qt.Modifier.SHIFT | Qt.Key.Key_Right))
         self._act_goto_right.triggered.connect(self.onGotoRight)
         self.addAction(self._act_goto_right)
@@ -197,6 +199,29 @@ class AnnotationListBar(QToolBar):
             return False
     # ################################################################
 
+    def _nearest_bounds(self, frame_id: int, timeline: TimelineModel) -> Tuple[int, int]:
+        crt_event = timeline.at_frame_id(frame_id)
+        # Left Bound
+        if (crt_event is not None) and (crt_event.first != frame_id):
+            l_bound = crt_event.first
+        else:
+            prv_event = crt_event.prv_event if crt_event is not None else None
+            if prv_event is None:
+                prv_event = timeline.before_frame_id(frame_id)
+            l_bound = prv_event.last if prv_event is not None else 0
+
+        # Right Bound
+        if (crt_event is not None) and (crt_event.last != frame_id):
+            r_bound = crt_event.last
+        else:
+            nxt_event = crt_event.nxt_event if crt_event is not None else None
+            if nxt_event is None:
+                nxt_event = timeline.after_frame_id(frame_id)
+            r_bound = nxt_event.first if nxt_event is not None else (timeline.duration - 1)
+
+        return (l_bound, r_bound)
+    # ################################################################
+
     def _update(self):
         self.setEnabled(not self._time_window.playing)
 
@@ -212,6 +237,20 @@ class AnnotationListBar(QToolBar):
         self._act_ano_delete.setEnabled(self._crt_annotation is not None)
         self._act_ano_move_up.setEnabled(self._crt_annotation is not None)
         self._act_ano_move_down.setEnabled(self._crt_annotation is not None)
+
+        # update Goto Left
+        visible_timelines = [
+            annotation for annotation in self._annotations 
+            if isinstance(annotation, TimelineModel) and annotation.visible]
+        if len(visible_timelines):
+            l_bounds, r_bounds = zip(*[self._nearest_bounds(frame_id, timeline) for timeline in visible_timelines])
+            self._goto_left_target = max(l_bounds)
+            self._goto_right_target = min(r_bounds)
+        else:
+            self._goto_left_target = None
+            self._goto_right_target = None
+        self._act_goto_left.setEnabled(self._goto_left_target is not None)
+        self._act_goto_right.setEnabled(self._goto_right_target is not None)
 
         if isinstance(self._crt_annotation, TimelineModel):
             # get prv & nxt events
@@ -238,36 +277,12 @@ class AnnotationListBar(QToolBar):
                 self._right_to_here_target = nxt_event.set_first if nxt_event else None
             self._act_left_to_here.setEnabled(self._left_to_here_target is not None)
             self._act_right_to_here.setEnabled(self._right_to_here_target is not None)
-            # update Goto Left
-            if (self._crt_event is not None) and (frame_id != self._crt_event.first):
-                self._act_goto_left.setToolTip("Goto Current Event's Start (Shit + Left)")
-                self._goto_left_target = self._crt_event.first
-            elif prv_event is not None:
-                self._act_goto_left.setToolTip("Goto Previous Event's End (Shift + Left)")
-                self._goto_left_target = prv_event.last
-            else:
-                self._act_goto_left.setToolTip("Goto Video's Begining (Shift + Left)")
-                self._goto_left_target = 0
-            self._act_goto_left.setEnabled(True)
-            # update Goto Right
-            if (self._crt_event is not None) and (frame_id != self._crt_event.last):                            
-                self._act_goto_right.setToolTip("Goto Current Event's End (Shift + Right)")
-                self._goto_right_target = self._crt_event.last
-            elif nxt_event is not None:
-                self._act_goto_right.setToolTip("Goto Next Event's Start (Shift + Right)")
-                self._goto_right_target = nxt_event.first
-            else:
-                self._act_goto_right.setToolTip("Goto Video's End (Shift + Right)")
-                self._goto_right_target = self._time_window.duration - 1
-            self._act_goto_right.setEnabled(True)   
         else:
             self._act_event_add.setEnabled(False)
             self._act_event_edit.setEnabled(False)
             self._act_event_rem.setEnabled(False)
             self._act_left_to_here.setEnabled(False)
             self._act_right_to_here.setEnabled(False)
-            self._act_goto_left.setEnabled(False)
-            self._act_goto_right.setEnabled(False)
     # ################################################################
 
 

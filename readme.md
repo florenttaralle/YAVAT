@@ -14,7 +14,7 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 
 ## Features 
 
-### Version 1.1.0
+### Version 1.2.0
 
 - Create/Edit/Delete Annotation Timelines.
 - Create/Edit/Delete Events on a timeline.
@@ -92,8 +92,8 @@ I use this tool a lot myself.
 - `UpArrow`:                Select previous timeline
 - `DownArrow`:              Select next timeline
 - `Ctrl`:                   Hide event handles (handy to move a ponctual event).
-- `Shift + RightArrow`      Move to the next event boundary on the selected timeline.
-- `Shift + LeftArrow`       Move to the previous event boundary on the selected timeline.
+- `Shift + RightArrow`      Goto the neareset event bound before the current position.
+- `Shift + LeftArrow`       Goto the neareset event bound after the current position.
 
 ### When no Event on the selected timeline at the current time position
 
