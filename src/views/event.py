@@ -181,12 +181,6 @@ class EventView(QGraphicsObject):
             case EventViewState.MovingRightHdl:
                 self._set_state(EventViewState.OverRightHdl)
 
-    # def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent):
-    #     QGraphicsObject.mouseDoubleClickEvent(self, event)
-    #     if event.isAccepted(): return
-    #     EventEditorDialog().exec(self._event)
-    #     event.accept()
-
     def _set_hdl_hidden(self, hdl_hidden: bool):
         if hdl_hidden != self._hdl_hidden:
             self._hdl_hidden = hdl_hidden

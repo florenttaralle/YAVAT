@@ -4,8 +4,8 @@ from src.models.time_window import TimeWindowModel
 from src.models.timeline import TimelineModel, EventModel
 from src.views.annotation import AnnotationView, AnnotationHeaderView
 from src.views.timeline_graph import TimelineGraphView
-from src.views.dialogs.timeline_editor import TimelineEditorDialog
 from src.views.dialogs.event_editor import EventEditorDialog
+from src.views.contextual_menus.time_window import TimeWindowContextualMenu, QMenu, QCursor
 from src.views.contextual_menus.timeline import TimelineContextualMenu
 # ##################################################################
 
@@ -20,14 +20,14 @@ class TimelineView(AnnotationView):
     def timeline(self) -> TimelineModel:
         return self._annotation
     
-    def onHeaderEdit(self):
-        AnnotationView.onHeaderEdit(self)
-        TimelineEditorDialog().exec(self._annotation)
-
     def onGraphContextMenu(self, frame_id: int, cm_event):
         AnnotationView.onGraphContextMenu(self, frame_id, cm_event)
         if (frame_id < 0) or (frame_id > self._time_window.duration): return
-        TimelineContextualMenu(self.timeline, self._time_window).show(frame_id)
+        menu    = QMenu()
+        tw_menu = TimeWindowContextualMenu(self._time_window, frame_id).attach(menu)
+        menu.addSeparator()
+        tl_menu = TimelineContextualMenu(self._time_window, self._annotation, frame_id).attach(menu)
+        menu.exec(QCursor.pos())
     
     def onGraphDoubleClick(self, frame_id: int, m_event):
         AnnotationView.onGraphDoubleClick(self, frame_id, m_event)

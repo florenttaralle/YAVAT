@@ -26,11 +26,13 @@ class EventModel(QObject):
         return f"<{self.__class__.__name__}[{self._first} ; {self._last}] lbl:'{self._label}'>"
     
     def data(self):
-        return {
+        data = {
             "first":    self._first,
             "last":     self._last,
-            "label":    self._label,
         }
+        if self._label:
+            data.update({"label": self._label})
+        return data
     
     @property
     def timeline(self):

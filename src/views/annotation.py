@@ -27,14 +27,10 @@ class AnnotationView(QWidget):
         self.layout().setContentsMargins(0, 2, 2, 2)
         self._header.setFixedWidth(200)
         
-        header.edit.connect(self.onHeaderEdit)
         graph.click.connect(self.onGraphClick)
         graph.context_menu.connect(self.onGraphContextMenu)
         graph.double_click.connect(self.onGraphDoubleClick)
         
-    def onHeaderEdit(self):
-        self._annotation.set_selected(True)
-
     def onGraphClick(self, frame_id: int, event):
         if (frame_id < 0) or (frame_id > self._time_window.duration): return
         self._annotation.set_selected(True)
