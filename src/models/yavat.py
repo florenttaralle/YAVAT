@@ -3,13 +3,12 @@ from PyQt6.QtCore import QObject, pyqtSignal
 import os, json
 from src.models.video import VideoModel, TimeWindowModel
 from src.models.annotation_list import AnnotationListModel
-from src.models.version import VersionModel
+from src.version import YAVAT_VERSION, VersionModel
 
 class YavatModel(QObject):
     yavat_path_changed  = pyqtSignal(object)
     "SIGNAL: yavat_path_changed(path: str|None)"
 
-    VERSION     = VersionModel.from_str("1.0.0")
     VERSION_KEY = 'yavat_version'
 
     def __init__(self, video: VideoModel, annotations: AnnotationListModel=None, 
@@ -61,7 +60,7 @@ class YavatModel(QObject):
 
             assert cls.VERSION_KEY in data, 'Not a Yavat Annotation File'
             version     = VersionModel.from_str(data.get(cls.VERSION_KEY, '0.0.0'))
-            assert version.compatible(cls.VERSION), f"Yavat Annotation File Version {str(version)} not compatible with Yavat Application Version {str(cls.VERSION)}"
+            assert version.compatible(YAVAT_VERSION), f"Yavat Annotation File Version {str(version)} not compatible with Yavat Application Version {str(YAVAT_VERSION)}"
             annotations = AnnotationListModel.parse(data['annotations'])
 
             if video_path is None:

@@ -9,6 +9,8 @@ class Icons(Enum):
     Close           = "close.png"
     Quit            = "quit.png"
 
+    MenuV           = "menu_v.png"
+    MenuH           = "menu_v.png"
     Mute            = "mute.png"
     Sound           = "sound.png"
     Play            = "play.png"
@@ -24,7 +26,7 @@ class Icons(Enum):
     ZoomReset       = "zoom_reset.png"
 
     MoveUp          = "arrow_up.png"
-    MoveDown        = "arrow.down.png"
+    MoveDown        = "arrow_down.png"
 
     Event           = "event.png"
     EventAdd        = "event_add.png"

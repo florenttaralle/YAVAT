@@ -62,6 +62,18 @@ class AnnotationListBar(QToolBar):
         self._act_ano_edit.setToolTip("Edit Current Annotation Properties")
         self._act_ano_edit.triggered.connect(self.onActAnnotationEdit)
         self.addAction(self._act_ano_edit)
+        # - Move Annotation Up
+        self._act_ano_move_up = QAction(Icons.MoveUp.icon(), "")
+        self._act_ano_move_up.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Up))
+        self._act_ano_move_up.setToolTip("Move Current Annotation Up (Ctrl + Up)")
+        self._act_ano_move_up.triggered.connect(self.onActAnnotationMoveUp)
+        self.addAction(self._act_ano_move_up)
+        # - Move Annotation Down
+        self._act_ano_move_down = QAction(Icons.MoveDown.icon(), "")
+        self._act_ano_move_down.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Down))
+        self._act_ano_move_down.setToolTip("Move Current Annotation Down (Ctrl + Down)")
+        self._act_ano_move_down.triggered.connect(self.onActAnnotationMoveDown)
+        self.addAction(self._act_ano_move_down)
         # - Delete Annotation
         self._act_ano_delete = QAction(Icons.TimelineRem.icon(), "")
         self._act_ano_delete.setToolTip("Delete Current Annotation")
@@ -198,6 +210,9 @@ class AnnotationListBar(QToolBar):
         # update annotation action buttons
         self._act_ano_edit.setEnabled(self._crt_annotation is not None)
         self._act_ano_delete.setEnabled(self._crt_annotation is not None)
+        self._act_ano_move_up.setEnabled(self._crt_annotation is not None)
+        self._act_ano_move_down.setEnabled(self._crt_annotation is not None)
+
         if isinstance(self._crt_annotation, TimelineModel):
             # get prv & nxt events
             prv_event = self._crt_event.prv_event if self._crt_event is not None else self._crt_annotation.before_frame_id(frame_id)                
@@ -268,6 +283,12 @@ class AnnotationListBar(QToolBar):
             annotation = self._crt_annotation
         return AnnotationEditorDialog().exec(annotation)
     
+    def onActAnnotationMoveUp(self):
+        self._annotations.move_up(self._crt_annotation)
+
+    def onActAnnotationMoveDown(self):
+        self._annotations.move_down(self._crt_annotation)
+
     def onActAnnotationDelete(self):
         button = QMessageBox.warning(None, 
                                      "Delete Annotation", 
