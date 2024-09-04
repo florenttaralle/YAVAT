@@ -78,7 +78,7 @@ class YavatModel(QObject):
             self._set_yavat_path(yavat_path)
         assert self._yavat_path is not None
         content = {
-            self.VERSION_KEY:   str(self.VERSION), 
+            self.VERSION_KEY:   str(YAVAT_VERSION), 
             "video":            self._video.data(),
             "annotations":      self._annotations.data(),
         }
