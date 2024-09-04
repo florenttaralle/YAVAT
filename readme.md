@@ -10,6 +10,8 @@ An event is defined by a start a stop and optionaly a string label.
 Start and stop of events can only be on an exact frame timestamp.
 An event can be ponctual: one-frame wide. 
 
+It also allows showing timeseries imported from CSV/Excel/Json files.
+
 Implementation in Python3. It uses PyQt6 and ffmpeg.
 
 ## Features 
@@ -19,15 +21,14 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 - Create/Edit/Delete Annotation Timelines.
 - Create/Edit/Delete Events on a timeline.
 - Move an event to another timeline.
+- Import One/Multiple Timeseries from a CSV/Excel/Json file.
 - Move Annotations Up/Down
-- Drag Timeline as JSON-Formated text
+- Drag Annotation as JSON-Formated text
 - Save/Load Annotations in a JSON-based YAVAT File.
 - Show named timeseries stored in the annotation file.
 
 ### TODO / Suggestions
 
-- Manage timeseries
-- Import timeseries from CSV file.
 - Implement Annotation Grid (like in ELAN)
 
 ## Getting Started
@@ -94,6 +95,7 @@ I use this tool a lot myself.
 - `Ctrl`:                   Hide event handles (handy to move a ponctual event).
 - `Shift + RightArrow`      Goto the neareset event bound before the current position.
 - `Shift + LeftArrow`       Goto the neareset event bound after the current position.
+- `Ctrl + I`                Open Timeseries Import Dialog.
 
 ### When no Event on the selected timeline at the current time position
 
@@ -106,6 +108,10 @@ I use this tool a lot myself.
 - `Delete`:                     Delete the event.
 - `Ctrl + Shift + LeftArrow`:   Move the left boundary of the event forward to the current time position.
 - `Ctrl + Shift + RightArrow`:  Move the right boundary of the event backward to the current time position.
+
+# Importing Timeseries
+
+![](assets/TimeseriesImportDialog.png)
 
 # Contributing
 

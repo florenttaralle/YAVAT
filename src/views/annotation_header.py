@@ -27,10 +27,8 @@ class AnnotationHeaderView(QWidget):
         annotation.name_changed.connect(self._name_lbl.setText)
 
     def onBtnMenu(self):
-        print("onBtnMenu 0")
         self._annotation.set_selected(True)
         menu = QMenu()
         ano_ctx_menu = AnnotationContextualMenu(self._annotation)
         ano_ctx_menu.attach(menu)
         menu.exec(QCursor.pos())
-        print("onBtnMenu 1")

@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 # ##################################################################
 from src.models.annotation_list import AnnotationListModel, AnnotationModel
-from src.views.dialogs.annotation_editor import AnnotationEditorDialog
+from src.views.dialogs.editor_dialogs import exec_annotation_dialog
 from src.icons import Icons
 # ##################################################################
 
@@ -32,7 +32,7 @@ class AnnotationContextualMenu(QObject):
         return self
     
     def onEdit(self):
-        AnnotationEditorDialog().exec(self._annotation)
+        exec_annotation_dialog(self._annotation)
 
     def onRemove(self):
         button = QMessageBox.warning(None, 

@@ -5,6 +5,7 @@ import os
 from src.models.yavat import YavatModel
 from src.views.player import PlayerView
 from src.views.annotation_list import AnnotationListView
+from src.views.dialogs.timeseries_import import TimeseriesImportDialog
 from src.icons import Icons
 
 class YavatView(QMainWindow):
@@ -34,6 +35,9 @@ class YavatView(QMainWindow):
         self._act_save_as = file_menu.addAction(Icons.Save.icon(), "Save Annotations As")
         self._act_save_as.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Modifier.SHIFT | Qt.Key.Key_S))
         self._act_save_as.triggered.connect(self.onActSaveAs)
+        self._act_import_ts = file_menu.addAction(Icons.Import.icon(), "Import Timeseries")
+        self._act_import_ts.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_I))
+        self._act_import_ts.triggered.connect(self.onActImportTimeseries)
         self._act_close = file_menu.addAction(Icons.Close.icon(), "Close")
         self._act_close.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_W))
         self._act_close.triggered.connect(self.onActCloseFile)
@@ -62,6 +66,7 @@ class YavatView(QMainWindow):
             self._annotations_view.set_context(None, None)
         self._act_save.setEnabled(self._yavat is not None)
         self._act_save_as.setEnabled(self._yavat is not None)
+        self._act_import_ts.setEnabled(self._yavat is not None)
         self._act_close.setEnabled(self._yavat is not None)
 
     def onVideoReadyChanged(self, ready: bool):
@@ -121,3 +126,7 @@ class YavatView(QMainWindow):
             QMessageBox.warning(self, "Error Loading", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
         else:
             self.set_yavat(yavat)
+
+    def onActImportTimeseries(self):
+        TimeseriesImportDialog.import_from_file(self._yavat, self)
+    

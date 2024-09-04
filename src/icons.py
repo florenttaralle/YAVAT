@@ -45,11 +45,17 @@ class Icons(Enum):
     ArrowToRight    = "arrow_to_right.png"
 
     Load            = "download.png"
+    Import          = "import.png"
     Save            = "upload.png"
     Edit            = "edit.png"
     
     Visible         = "visible.png"
     Hidden          = "hidden.png"
+    
+    MessageOk       = "ok.png"
+    MessageInfo     = "info.png"
+    MessageWarning  = "warning.png"
+    MessageError    = "error.png"
     
     def icon(self) -> QIcon:
         return QIcon(self.__ICON_FOLDER__ + self.value)

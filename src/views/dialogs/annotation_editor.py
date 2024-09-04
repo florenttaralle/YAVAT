@@ -31,7 +31,7 @@ class AnnotationEditorDialog(QDialog):
         self._color_btn.setFlat(True)
         self._color_btn.clicked.connect(self.colorBtnClicked)
         form.addRow(QLabel("Color"), self._color_btn)
-        
+
     def from_annotation(self, annotation: AnnotationModel):
         self._name_le.setText(annotation.name)
         self._set_color(annotation.color)

@@ -7,7 +7,7 @@ from src.models.annotation_list import AnnotationListModel, AnnotationModel
 from src.models.time_window import TimeWindowModel
 from src.models.timeline import TimelineModel, EventModel
 from src.icons import Icons
-from src.views.dialogs.annotation_editor import AnnotationEditorDialog
+from src.views.dialogs.editor_dialogs import exec_annotation_dialog
 from src.views.dialogs.event_editor import EventEditorDialog
 # ###########################################################
 
@@ -60,7 +60,7 @@ class AnnotationListBar(QToolBar):
         # - Edit Annotation
         self._act_ano_edit = QAction(Icons.Edit.icon(), "")
         self._act_ano_edit.setToolTip("Edit Current Annotation Properties")
-        self._act_ano_edit.triggered.connect(self.onActAnnotationEdit)
+        self._act_ano_edit.triggered.connect(lambda _: self.onActAnnotationEdit(self._crt_annotation))
         self.addAction(self._act_ano_edit)
         # - Move Annotation Up
         self._act_ano_move_up = QAction(Icons.MoveUp.icon(), "")
@@ -288,23 +288,21 @@ class AnnotationListBar(QToolBar):
 
     # Action Implementations
     # ################################################################
-    def onActTimelineAdd(self):
+    def onActTimelineAdd(self, checked: bool):
         timeline = TimelineModel(self._time_window.duration, selected=True)
         if self.onActAnnotationEdit(timeline):
             self._annotations.append(timeline)
     
-    def onActAnnotationEdit(self, annotation: AnnotationModel|None=None) -> bool:
-        if annotation is None:
-            annotation = self._crt_annotation
-        return AnnotationEditorDialog().exec(annotation)
+    def onActAnnotationEdit(self, annotation: AnnotationModel) -> bool:
+        return exec_annotation_dialog(annotation)
     
-    def onActAnnotationMoveUp(self):
+    def onActAnnotationMoveUp(self, checked: bool):
         self._annotations.move_up(self._crt_annotation)
 
-    def onActAnnotationMoveDown(self):
+    def onActAnnotationMoveDown(self, checked: bool):
         self._annotations.move_down(self._crt_annotation)
 
-    def onActAnnotationDelete(self):
+    def onActAnnotationDelete(self, checked: bool):
         button = QMessageBox.warning(None, 
                                      "Delete Annotation", 
                                      f"About to delete annotation: '{self._crt_annotation.name}'", 
@@ -313,19 +311,19 @@ class AnnotationListBar(QToolBar):
         if button == QMessageBox.StandardButton.Ok:
             self._annotations.remove(self._crt_annotation)
 
-    def onActEventCreate(self):
+    def onActEventCreate(self, checked: bool):
         frame_id = self._time_window.position
         event = EventModel(frame_id, frame_id)
         self._crt_annotation.add(event)
 
-    def onActEventEdit(self):
+    def onActEventEdit(self, checked: bool):
         EventEditorDialog().exec(self._crt_event)
     
-    def onActEventDelete(self):
+    def onActEventDelete(self, checked: bool):
         self._crt_event.remove()
     
-    def onActLeftToHere(self):      self._left_to_here_target(self._time_window.position)
-    def onActRightToHere(self):     self._right_to_here_target(self._time_window.position)
-    def onGotoLeft(self):           self._time_window.goto(self._goto_left_target)
-    def onGotoRight(self):          self._time_window.goto(self._goto_right_target)
+    def onActLeftToHere(self, checked: bool):      self._left_to_here_target(self._time_window.position)
+    def onActRightToHere(self, checked: bool):     self._right_to_here_target(self._time_window.position)
+    def onGotoLeft(self, checked: bool):           self._time_window.goto(self._goto_left_target)
+    def onGotoRight(self, checked: bool):          self._time_window.goto(self._goto_right_target)
     # ################################################################

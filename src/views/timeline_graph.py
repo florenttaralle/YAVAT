@@ -27,6 +27,9 @@ class TimelineGraphView(GraphView):
         self._timeline.event_added.connect(self.onEventAdded)
         self._timeline.event_removed.connect(self.onEventRemoved)
         self._timeline.color_changed.connect(self.onTimelineColorChanged)
+
+        # initialize Y range
+        self.setYRange(0, 1, 0)
         
     def onTimelineColorChanged(self, color: QColor):
         pen = QPen(color)

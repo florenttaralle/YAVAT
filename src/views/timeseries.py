@@ -1,0 +1,29 @@
+from PyQt6.QtWidgets import QWidget
+# ##################################################################
+from src.models.time_window import TimeWindowModel
+from src.models.timeseries import TimeseriesModel
+from src.views.annotation import AnnotationView, AnnotationHeaderView
+from src.views.timeseries_graph import TimeseriesGraphView
+from src.views.contextual_menus.time_window import TimeWindowContextualMenu, QMenu, QCursor
+# ##################################################################
+
+
+class TimeseriesView(AnnotationView):
+    def __init__(self, timeseries: TimeseriesModel, time_window: TimeWindowModel, parent: QWidget|None = None):
+        header  = AnnotationHeaderView(timeseries)
+        graph   = TimeseriesGraphView(time_window, timeseries)
+        AnnotationView.__init__(self, timeseries, time_window, header, graph, parent)
+
+    @property
+    def timeseries(self) -> TimeseriesModel:
+        return self._annotation
+    
+    def onGraphContextMenu(self, frame_id: int, cm_event):
+        AnnotationView.onGraphContextMenu(self, frame_id, cm_event)
+        if (frame_id < 0) or (frame_id > self._time_window.duration): return
+        menu    = QMenu()
+        tw_menu = TimeWindowContextualMenu(self._time_window, frame_id).attach(menu)
+        menu.exec(QCursor.pos())
+    
+    def onGraphDoubleClick(self, frame_id: int, m_event):
+        AnnotationView.onGraphDoubleClick(self, frame_id, m_event)

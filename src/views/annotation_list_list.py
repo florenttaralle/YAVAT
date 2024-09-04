@@ -7,6 +7,7 @@ from src.models.time_window import TimeWindowModel
 from src.models.annotation_list import AnnotationListModel, AnnotationModel
 from src.views.annotation import AnnotationView
 from src.views.timeline import TimelineView, TimelineModel
+from src.views.timeseries import TimeseriesView, TimeseriesModel
 
 class AnnotationListListView(QListWidget):
     @attr.define
@@ -134,4 +135,6 @@ class AnnotationListListView(QListWidget):
     def _view_factory(self, annotation: AnnotationModel, parent: QWidget|None=None) -> AnnotationView:
         if isinstance(annotation, TimelineModel):
             return TimelineView(annotation, self._time_window, parent=parent)
-    
+        elif isinstance(annotation, TimeseriesModel):
+            return TimeseriesView(annotation, self._time_window, parent=parent)
+

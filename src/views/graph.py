@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, QPoint, QPointF, pyqtSignal
+from PyQt6.QtCore import Qt, QPoint, QPointF, pyqtSignal, QRectF
 from PyQt6.QtWidgets import QWidget, QGraphicsLineItem, QGraphicsView
 from PyQt6.QtGui import QColorConstants, QPen, QMouseEvent, QContextMenuEvent, QWheelEvent
 import pyqtgraph as pg
@@ -32,20 +32,19 @@ class GraphView(pg.PlotWidget):
         pen.setCosmetic(True)
         pen.setWidth(3)
         self._position_line.setPen(pen)
-        self._position_line.setZValue(1)
+        self._position_line.setZValue(10)
         self.addItem(self._position_line)
 
-        self.setYRange(0, 1, 0)
         time_window.window_changed.connect(self.onTimeWindowChanged)
         self.onTimeWindowChanged(time_window.left, time_window.position, time_window.right)
 
     def setYRange(self, ymin: float, ymax: float, padding: float=0.01):
-        pg.PlotWidget.setYRange(self, ymin, ymax, padding)
-        self._position_line.setX(self._time_window.position)
+        self._position_line.setLine(self._time_window.position, ymin, self._time_window.position, ymax)
+        pg.ViewBox.setYRange(self, ymin, ymax, padding)
 
     def onTimeWindowChanged(self, left: int, position: int, right: int):
-        self.setXRange(left, right, 0.01)
         self._position_line.setX(position)
+        pg.ViewBox.setXRange(self, left, right, 0.01)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         QGraphicsView.mouseDoubleClickEvent(self, event)
