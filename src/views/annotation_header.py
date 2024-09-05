@@ -1,11 +1,12 @@
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
+from PyQt6.QtGui import *
 from src.models.annotation import AnnotationModel
 from src.icons import Icons
 from src.views.contextual_menus.annotation import AnnotationContextualMenu, QMenu, QCursor
 
 class AnnotationHeaderView(QWidget):
-    def __init__(self, annotation: AnnotationModel, parent: QWidget|None = None):
+    def __init__(self, annotation: AnnotationModel, show_value: bool=False, parent: QWidget|None = None):
         QWidget.__init__(self, parent)
         self._annotation = annotation
         self.setLayout(QHBoxLayout())
@@ -19,10 +20,27 @@ class AnnotationHeaderView(QWidget):
         self._btn_menu.clicked.connect(self.onBtnMenu)
         self.layout().addWidget(self._btn_menu)
 
+        widget = QWidget(self)
+        self.layout().addWidget(widget)
+        widget.setLayout(QVBoxLayout())
+        widget.layout().setSpacing(5)
+        widget.layout().setContentsMargins(0, 0, 0, 0)
+
         self._name_lbl = QLabel(annotation.name)
-        self._name_lbl.font().setBold(True)
+        font = QFont()
+        font.setPointSize(11)
+        font.setBold(True)
+        self._name_lbl.setFont(font)
         self._name_lbl.setWordWrap(True)
-        self.layout().addWidget(self._name_lbl)
+        widget.layout().addWidget(self._name_lbl)
+
+        self._value_lbl = QLabel()
+        self._value_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+        font = QFont()
+        font.setPointSize(9)
+        self._value_lbl.setFont(font)
+        widget.layout().addWidget(self._value_lbl)
+        self._value_lbl.setVisible(show_value)
 
         annotation.name_changed.connect(self._name_lbl.setText)
 

@@ -12,14 +12,21 @@ from src.views.contextual_menus.timeline import TimelineContextualMenu
 
 class TimelineView(AnnotationView):
     def __init__(self, timeline: TimelineModel, time_window: TimeWindowModel, parent: QWidget|None = None):
-        header  = AnnotationHeaderView(timeline)
+        header  = AnnotationHeaderView(timeline, True)
         graph   = TimelineGraphView(time_window, timeline)
         AnnotationView.__init__(self, timeline, time_window, header, graph, parent)
+        self._set_value()
+        self._time_window.position_changed.connect(lambda *_: self._set_value())
 
     @property
     def timeline(self) -> TimelineModel:
         return self._annotation
     
+    def _set_value(self):
+        event = self.timeline.at_frame_id(self._time_window.position)
+        value = (event.label or ">") if event else ""
+        self._header._value_lbl.setText(value)
+
     def onGraphContextMenu(self, frame_id: int, cm_event):
         AnnotationView.onGraphContextMenu(self, frame_id, cm_event)
         if (frame_id < 0) or (frame_id > self._time_window.duration): return

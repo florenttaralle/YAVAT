@@ -1,4 +1,5 @@
 from PyQt6.QtWidgets import QWidget
+import numpy as np
 # ##################################################################
 from src.models.time_window import TimeWindowModel
 from src.models.timeseries import TimeseriesModel
@@ -10,13 +11,20 @@ from src.views.contextual_menus.time_window import TimeWindowContextualMenu, QMe
 
 class TimeseriesView(AnnotationView):
     def __init__(self, timeseries: TimeseriesModel, time_window: TimeWindowModel, parent: QWidget|None = None):
-        header  = AnnotationHeaderView(timeseries)
+        header  = AnnotationHeaderView(timeseries, True)
         graph   = TimeseriesGraphView(time_window, timeseries)
         AnnotationView.__init__(self, timeseries, time_window, header, graph, parent)
+        self._set_value()
+        self._time_window.position_changed.connect(lambda *_: self._set_value())
 
     @property
     def timeseries(self) -> TimeseriesModel:
         return self._annotation
+    
+    def _set_value(self):
+        idx     = np.argwhere(np.array(self.timeseries.X) == self._time_window.position)[0][0]
+        value   = round(self.timeseries.Y[idx], 2)
+        self._header._value_lbl.setText(str(value))
     
     def onGraphContextMenu(self, frame_id: int, cm_event):
         AnnotationView.onGraphContextMenu(self, frame_id, cm_event)
