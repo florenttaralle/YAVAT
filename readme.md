@@ -16,7 +16,7 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 
 ## Features 
 
-### Version 1.5.0
+### Version 1.6.0
 
 - Create/Edit/Delete Annotation Timelines.
 - Create/Edit/Delete Events on a timeline.
@@ -27,9 +27,11 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 - Drag Annotation as JSON-Formated text
 - Save/Load Annotations in a JSON-based YAVAT File.
 - Show named timeseries stored in the annotation file.
+- Show Current values in a grid.
 
 ### TODO / Suggestions
 
+- Copy Current Values to clipboard.
 - Implement Annotation Grid (like in ELAN)
 
 ## Getting Started
