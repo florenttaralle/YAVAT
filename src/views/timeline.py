@@ -24,8 +24,8 @@ class TimelineView(AnnotationView):
     
     def _set_value(self):
         event = self.timeline.at_frame_id(self._time_window.position)
-        value = (event.label or ">") if event else ""
-        self._header._value_lbl.setText(value)
+        value = (event.label) if event else ""
+        self._header._value_lbl.setText(value + " >")
 
     def onGraphContextMenu(self, frame_id: int, cm_event):
         AnnotationView.onGraphContextMenu(self, frame_id, cm_event)

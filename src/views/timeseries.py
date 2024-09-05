@@ -1,5 +1,4 @@
 from PyQt6.QtWidgets import QWidget
-import numpy as np
 # ##################################################################
 from src.models.time_window import TimeWindowModel
 from src.models.timeseries import TimeseriesModel
@@ -22,9 +21,9 @@ class TimeseriesView(AnnotationView):
         return self._annotation
     
     def _set_value(self):
-        idx     = np.argwhere(np.array(self.timeseries.X) == self._time_window.position)[0][0]
-        value   = round(self.timeseries.Y[idx], 2)
-        self._header._value_lbl.setText(str(value))
+        idx     = self.timeseries.X.index(self._time_window.position)
+        value   = str(round(self.timeseries.Y[idx], 2)) if idx >= 0 else ""
+        self._header._value_lbl.setText(value + " >")
     
     def onGraphContextMenu(self, frame_id: int, cm_event):
         AnnotationView.onGraphContextMenu(self, frame_id, cm_event)

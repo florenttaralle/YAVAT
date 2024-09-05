@@ -6,6 +6,7 @@ from src.models.yavat import YavatModel
 from src.views.player import PlayerView
 from src.views.annotation_list import AnnotationListView
 from src.views.dialogs.data_import import DataImportDialog
+from src.views.values_grid import ValuesGridView
 from src.icons import Icons
 
 class YavatView(QMainWindow):
@@ -14,10 +15,15 @@ class YavatView(QMainWindow):
         self._yavat:            YavatModel|None = None
         self._player_view       = PlayerView()
         self._annotations_view  = AnnotationListView()
-        
+        self._values_grid_view  = ValuesGridView()
+
         self.setWindowTitle("YAVAT - Yet Another Video Annotation Tool")
         self.setWindowIcon(Icons.Yavat.icon())
         self.setCentralWidget(self._player_view)
+
+        values_grid_dock = QDockWidget("Current Values", self)
+        values_grid_dock.setWidget(self._values_grid_view)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, values_grid_dock, Qt.Orientation.Vertical)
 
         annotations_dock = QDockWidget("Annotations", self)
         annotations_dock.setWidget(self._annotations_view)
@@ -50,6 +56,7 @@ class YavatView(QMainWindow):
         # add menu for views
         view_menu = self.menuBar().addMenu("&View")
         view_menu.addAction(annotations_dock.toggleViewAction())
+        view_menu.addAction(values_grid_dock.toggleViewAction())
 
         self.set_yavat(None)
         if path is not None:
@@ -64,6 +71,8 @@ class YavatView(QMainWindow):
         else:
             self._player_view.set_video(None)
             self._annotations_view.set_context(None, None)
+            self._values_grid_view.set_context(None, None)
+            
         self._act_save.setEnabled(self._yavat is not None)
         self._act_save_as.setEnabled(self._yavat is not None)
         self._act_import_ts.setEnabled(self._yavat is not None)
@@ -72,6 +81,7 @@ class YavatView(QMainWindow):
     def onVideoReadyChanged(self, ready: bool):
         self._player_view.set_video(self._yavat.video)
         self._annotations_view.set_context(self._yavat.time_window, self._yavat.annotations)
+        self._values_grid_view.set_context(self._yavat.time_window, self._yavat.annotations)
 
     def onActCloseFile(self):
         self.set_yavat(None)

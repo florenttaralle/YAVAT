@@ -69,7 +69,7 @@ class ColumnsModel(QAbstractTableModel):
             case Qt.ItemDataRole.UserRole:
                 match index.column():
                     case ModelColumn.Function: return column
-                    
+
             case Qt.ItemDataRole.DisplayRole:
                 match index.column():
                     case ModelColumn.Function:      return f"{int(not column.used)}-{column.cfunction.name}" 

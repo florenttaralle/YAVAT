@@ -49,7 +49,7 @@ class AnnotationListModel(QObject):
     def __len__(self) -> int:
         return len(self._annotations)
 
-    def __getitem__(self, idx: int) -> int:
+    def __getitem__(self, idx: int) -> AnnotationModel:
         return self._annotations[idx]
 
     def append(self, item: AnnotationModel) -> AnnotationModel:
