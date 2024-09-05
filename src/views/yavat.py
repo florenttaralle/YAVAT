@@ -5,7 +5,7 @@ import os
 from src.models.yavat import YavatModel
 from src.views.player import PlayerView
 from src.views.annotation_list import AnnotationListView
-from src.views.dialogs.timeseries_import import TimeseriesImportDialog
+from src.views.dialogs.data_import import DataImportDialog
 from src.icons import Icons
 
 class YavatView(QMainWindow):
@@ -35,9 +35,9 @@ class YavatView(QMainWindow):
         self._act_save_as = file_menu.addAction(Icons.Save.icon(), "Save Annotations As")
         self._act_save_as.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Modifier.SHIFT | Qt.Key.Key_S))
         self._act_save_as.triggered.connect(self.onActSaveAs)
-        self._act_import_ts = file_menu.addAction(Icons.Import.icon(), "Import Timeseries")
+        self._act_import_ts = file_menu.addAction(Icons.Import.icon(), "Import Annotations")
         self._act_import_ts.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_I))
-        self._act_import_ts.triggered.connect(self.onActImportTimeseries)
+        self._act_import_ts.triggered.connect(self.onActImportData)
         self._act_close = file_menu.addAction(Icons.Close.icon(), "Close")
         self._act_close.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_W))
         self._act_close.triggered.connect(self.onActCloseFile)
@@ -127,6 +127,6 @@ class YavatView(QMainWindow):
         else:
             self.set_yavat(yavat)
 
-    def onActImportTimeseries(self):
-        TimeseriesImportDialog.import_from_file(self._yavat, self)
+    def onActImportData(self):
+        DataImportDialog.import_from_file(self._yavat, self)
     

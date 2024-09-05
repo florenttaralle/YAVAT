@@ -21,7 +21,7 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 - Create/Edit/Delete Annotation Timelines.
 - Create/Edit/Delete Events on a timeline.
 - Move an event to another timeline.
-- Import One/Multiple Timeseries from a CSV/Excel/Json file.
+- Import One/Multiple Annotations from a CSV/Excel/Json file.
 - Move Annotations Up/Down
 - Drag Annotation as JSON-Formated text
 - Save/Load Annotations in a JSON-based YAVAT File.
@@ -109,9 +109,13 @@ I use this tool a lot myself.
 - `Ctrl + Shift + LeftArrow`:   Move the left boundary of the event forward to the current time position.
 - `Ctrl + Shift + RightArrow`:  Move the right boundary of the event backward to the current time position.
 
-# Importing Timeseries
+# Importing Annotations
 
 ![](assets/TimeseriesImportDialog.png)
+
+- Timeseries : You can select any data column with int or float type to be imported as a new Timeseries.
+- Timeline Single : You can select any data column with number of distinct y-values <= 10 to be imported as a single new Timeline. Any continuous data chunks are grouped in a single Event. The YValue is used as Event's label.
+- Timeline Multi : You can select any data column with number of distinct y-values <= 10 to be imported as multiple Timelines. One timeline is created for each distinct y-value. Timeline's name is "COLUMN_NAME - Y_VALUE". Any continuous data chunks are grouped in a single Event and added to the corresponding named timeline.
 
 # Contributing
 

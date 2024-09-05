@@ -14,6 +14,7 @@ class Column:
     example:    str|None
     min:        object
     max:        object
+    nb_values:  int
     cfunction:  ColumnFunction          = attr.field(init=False)
     cfunctions: List[ColumnFunction]    = attr.field(init=False)
 
@@ -25,7 +26,7 @@ class Column:
         return self.series.dtype
 
     def __attrs_post_init__(self):
-        self.cfunctions     = ColumnFunction.applicable_functions(self.dtype)
+        self.cfunctions     = ColumnFunction.applicable_functions(self.dtype, self.nb_values)
         self.cfunction      = ColumnFunction.Ignored if len(self.cfunctions) else ColumnFunction.NotApplicable
 
     @property

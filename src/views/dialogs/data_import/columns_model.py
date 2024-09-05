@@ -12,6 +12,7 @@ class ModelColumn(IntEnum):
     Id          = auto()
     Name        = auto()
     Type        = auto()
+    NbDistinct  = auto()
     Example     = auto()
     Min         = auto()
     Max         = auto()
@@ -30,6 +31,7 @@ class ColumnsModel(QAbstractTableModel):
                 df[name].iloc[0],
                 df[name].min() if np.issubdtype(df[name].dtype, np.number) else None,
                 df[name].max() if np.issubdtype(df[name].dtype, np.number) else None,
+                len(df[name].value_counts())
             )
             for id, name in enumerate(df.columns)
         ]
@@ -42,13 +44,14 @@ class ColumnsModel(QAbstractTableModel):
     def headerData(self, section, orientation, role):
         if (role == Qt.ItemDataRole.DisplayRole) and (orientation == Qt.Orientation.Horizontal):
             match section:
-                case ModelColumn.Function:  return "Function"
-                case ModelColumn.Id:        return "Id"
-                case ModelColumn.Name:      return "Name"
-                case ModelColumn.Type:      return "Type"
-                case ModelColumn.Example:   return "Example"
-                case ModelColumn.Min:       return "Min"
-                case ModelColumn.Max:       return "Max"
+                case ModelColumn.Function:      return "Function"
+                case ModelColumn.Id:            return "Id"
+                case ModelColumn.Name:          return "Name"
+                case ModelColumn.Type:          return "Type"
+                case ModelColumn.NbDistinct:    return "#Distinct"
+                case ModelColumn.Example:       return "Example"
+                case ModelColumn.Min:           return "Min"
+                case ModelColumn.Max:           return "Max"
 
     def _str_value(self, value) -> str|None:
         if value is None:                       return None
@@ -69,13 +72,14 @@ class ColumnsModel(QAbstractTableModel):
                     
             case Qt.ItemDataRole.DisplayRole:
                 match index.column():
-                    case ModelColumn.Function:  return f"{int(not column.used)}-{column.cfunction.name}" 
-                    case ModelColumn.Id:        return column.id
-                    case ModelColumn.Name:      return column.name
-                    case ModelColumn.Type:      return self._dtype_name(column.dtype)
-                    case ModelColumn.Example:   return self._str_value(column.example)
-                    case ModelColumn.Min:       return self._str_value(column.min)
-                    case ModelColumn.Max:       return self._str_value(column.max)
+                    case ModelColumn.Function:      return f"{int(not column.used)}-{column.cfunction.name}" 
+                    case ModelColumn.Id:            return column.id
+                    case ModelColumn.Name:          return column.name
+                    case ModelColumn.Type:          return self._dtype_name(column.dtype)
+                    case ModelColumn.NbDistinct:    return column.nb_values
+                    case ModelColumn.Example:       return self._str_value(column.example)
+                    case ModelColumn.Min:           return self._str_value(column.min)
+                    case ModelColumn.Max:           return self._str_value(column.max)
 
             case Qt.ItemDataRole.BackgroundRole:
                 color = column.cfunction.color

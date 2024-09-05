@@ -7,25 +7,24 @@ from src.views.annotation_header import AnnotationHeaderView
 from src.views.graph import GraphView
 # ##################################################################
 
+# splitterMoved, moveSplitter
 
-class AnnotationView(QWidget):
+class AnnotationView(QSplitter):
     def __init__(self, annotation: AnnotationModel, time_window: TimeWindowModel, 
                  header: AnnotationHeaderView, graph: GraphView, parent: QWidget|None = None):
-        QWidget.__init__(self, parent)
+        QSplitter.__init__(self, Qt.Orientation.Horizontal, parent)
         self._annotation = annotation
         self._time_window = time_window
+        self.setChildrenCollapsible(False)
         self.setFixedHeight(50)
 
-        self.setLayout(QHBoxLayout())
         self._header = header
-        self._header.setFixedWidth(100)
-        self.layout().addWidget(self._header)
+        self._header.setMinimumWidth(200)
+        self.addWidget(self._header)
 
         self._graph  = graph
         self._graph.setFixedHeight(50)
-        self.layout().addWidget(self._graph)
-        self.layout().setContentsMargins(0, 2, 2, 2)
-        self._header.setFixedWidth(200)
+        self.addWidget(self._graph)
         
         graph.click.connect(self.onGraphClick)
         graph.context_menu.connect(self.onGraphContextMenu)

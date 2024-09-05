@@ -40,6 +40,17 @@ class AnnotationListListView(QListWidget):
         self.set_context(time_window, annotations)
         self.setDragDropMode(QListView.DragDropMode.DragDrop)
     
+    def onAnnotationSplitterMoved(self, item: Item):
+        sizes = item.view.sizes()
+        for other_item in self._items:
+            if other_item != item:
+                other_item.view.setSizes(sizes)
+    
+    def _allign_to_max_header(self):
+        sizes = max([item.view.sizes() for item in self._items], key=lambda sizes: sizes[0])
+        for item in self._items:
+            item.view.setSizes(sizes)
+    
     def mimeData(self, items: List[QListWidgetItem]) -> QMimeData:
         # prepare data type & content
         # get 'application/x-qabstractitemmodeldatalist' to allow item move behavior
@@ -115,6 +126,8 @@ class AnnotationListListView(QListWidget):
         widget.setSizeHint(view.minimumSizeHint())
         widget.setSelected(annotation.selected)
         widget.setHidden(not annotation.visible)
+        view.splitterMoved.connect(lambda *_: self.onAnnotationSplitterMoved(item))
+        self._allign_to_max_header()
     
     def onAnnotationMoved(self, annotation: AnnotationModel, prv_index: int, new_index: int):
         self.onAnnotationRemoved(annotation)

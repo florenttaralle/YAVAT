@@ -57,5 +57,12 @@ class Icons(Enum):
     MessageWarning  = "warning.png"
     MessageError    = "error.png"
     
+    Ignored         = "ignored.png"
+    XValueClock     = "xvalue_clock.png"
+    XValueCalendar  = "xvalue_calendar.png"
+    YValueTS        = "yvalue_timeseries.png"
+    YValueTL1       = "yvalue_timeline_1.png"
+    YValueTLN       = "yvalue_timeline_n.png"
+    
     def icon(self) -> QIcon:
         return QIcon(self.__ICON_FOLDER__ + self.value)
