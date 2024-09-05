@@ -38,9 +38,8 @@ class TimelineGraphView(GraphView):
         self._border.setPen(pen)
 
     def onEventAdded(self, event: EventModel):
-        view = EventView(event, self._timeline.color)
+        view = EventView(event)
         view.left_click.connect(self.onEventLeftClick)
-        self._timeline.color_changed.connect(view.set_color)
         self._views[event] = view
         self.addItem(view)
     

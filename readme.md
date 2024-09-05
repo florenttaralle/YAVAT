@@ -16,11 +16,12 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 
 ## Features 
 
-### Version 1.2.0
+### Version 1.5.0
 
 - Create/Edit/Delete Annotation Timelines.
 - Create/Edit/Delete Events on a timeline.
 - Move an event to another timeline.
+- Edit Event > Label > Annotation color.
 - Import One/Multiple Annotations from a CSV/Excel/Json file.
 - Move Annotations Up/Down
 - Drag Annotation as JSON-Formated text
@@ -96,6 +97,10 @@ I use this tool a lot myself.
 - `Shift + RightArrow`      Goto the neareset event bound before the current position.
 - `Shift + LeftArrow`       Goto the neareset event bound after the current position.
 - `Ctrl + I`                Open Timeseries Import Dialog.
+- `Ctrl + Wheel Up`         Zoom Out
+- `Ctrl + Wheel Down`       Zoom In
+- `Ctrl + Wheel Left`       Move Left
+- `Ctrl + Wheel Right`      Move Right
 
 ### When no Event on the selected timeline at the current time position
 
@@ -116,6 +121,14 @@ I use this tool a lot myself.
 - Timeseries : You can select any data column with int or float type to be imported as a new Timeseries.
 - Timeline Single : You can select any data column with number of distinct y-values <= 10 to be imported as a single new Timeline. Any continuous data chunks are grouped in a single Event. The YValue is used as Event's label.
 - Timeline Multi : You can select any data column with number of distinct y-values <= 10 to be imported as multiple Timelines. One timeline is created for each distinct y-value. Timeline's name is "COLUMN_NAME - Y_VALUE". Any continuous data chunks are grouped in a single Event and added to the corresponding named timeline.
+
+# About Event Color Hierarchy
+
+Event color is specified in that order
+
+1. A color is set for this particular event (in event edition dialog).
+2. A color is set for this label on this timeline (in event edition dialog).
+3. A color is set for the timeline (in the timeline edition dialog).
 
 # Contributing
 

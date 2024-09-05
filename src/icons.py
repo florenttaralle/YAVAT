@@ -9,6 +9,8 @@ class Icons(Enum):
     Close           = "close.png"
     Quit            = "quit.png"
 
+    ColorDelete     = "error.png"
+
     MenuV           = "menu_v.png"
     MenuH           = "menu_v.png"
     Mute            = "mute.png"

@@ -1,29 +1,35 @@
 from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal
-from typing import List
+from typing import List, Mapping
 import itertools as it
 from src.models.event import EventModel
 from src.models.annotation import AnnotationModel, QColor
+from src.models.color_list import ColorListModel
 
 class TimelineModel(AnnotationModel):
     event_added         = pyqtSignal(EventModel)
     "SIGNAL: event_added(event: EventModel)"
     event_removed       = pyqtSignal(EventModel)
     "SIGNAL: event_removed(event: EventModel)"
-    
     next_id_generator = it.count()
     
     def __init__(self, duration: int, name: str|None=None, color: QColor|str=None, visible: bool=True, selected: bool=False, 
-                 events: List[EventModel]=None, parent: QObject|None=None):
+                 events: List[EventModel]=None, colors: Mapping[str, QColor|None]=None, parent: QObject|None=None):
         if name is None:
             name = f"Timeline {next(self.next_id_generator)}"
         AnnotationModel.__init__(self, duration, name, color, visible, selected, parent)
         self._events = events or []
+        self._colors = ColorListModel(colors)
+
+    @property
+    def colors(self) -> ColorListModel:
+        return self._colors
 
     def data(self):
         return {
             **AnnotationModel.data(self),
-            "events": [event.data() for event in self._events]
+            "events": [event.data() for event in self._events],
+            "colors": self._colors.data(),
         }
 
     @classmethod

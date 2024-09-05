@@ -1,5 +1,6 @@
 from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtGui import QColor
 from typing import Tuple
 
 class EventModel(QObject):
@@ -9,18 +10,22 @@ class EventModel(QObject):
     "SIGNAL: last_changed(last: int)"
     label_changed       = pyqtSignal(str)
     "SIGNAL: label_changed(label: str)"
+    color_changed       = pyqtSignal(object)
+    "SIGNAL: color_changed(color: QColor|None)"
     prv_event_changed   = pyqtSignal(object)
     "SIGNAL: prv_event_changed(event: EventModel|None)"
     nxt_event_changed   = pyqtSignal(object)
     "SIGNAL: nxt_event_changed(event: EventModel|None)"
 
-    def __init__(self, first: int, last: int, prv_event: EventModel|None=None, nxt_event: EventModel|None=None, label: str="", parent: QObject|None=None):
+    def __init__(self, first: int, last: int, prv_event: EventModel|None=None, nxt_event: EventModel|None=None, 
+                 label: str="", color: QColor|None=None, parent: QObject|None=None):
         QObject.__init__(self, parent)
         self._first     = first
         self._last      = last
         self._prv_event = prv_event
         self._nxt_event = nxt_event
         self._label     = label
+        self._color     = QColor(color) if color is not None else None
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self._first} ; {self._last}] lbl:'{self._label}'>"
@@ -32,8 +37,10 @@ class EventModel(QObject):
         }
         if self._label:
             data.update({"label": self._label})
+        if self._color is not None:
+            data.update({"color": self._color.name()})
         return data
-    
+
     @property
     def timeline(self):
         return self.parent()
@@ -53,6 +60,22 @@ class EventModel(QObject):
         if label != self._label:
             self._label = label
             self.label_changed.emit(self._label)
+
+    @property
+    def color(self) -> QColor|None:
+        return self._color
+    def set_color(self, color: QColor|None):
+        if color != self._color:
+            self._color = color
+            self.color_changed.emit(self._color)
+
+    def get_final_color(self) -> QColor:
+        color = self._color
+        if color is None:
+            color = self.timeline.colors.get(self._label)
+        if color is None:
+            color = self.timeline.color
+        return color
 
     @property
     def first(self) -> int: 

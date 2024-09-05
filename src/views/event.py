@@ -23,10 +23,9 @@ class EventView(QGraphicsObject):
     left_click = pyqtSignal(object, int)
     "SIGNAL: left_click(event: EventView, frame_id: int)"
     
-    def __init__(self, event: EventModel, color: QColor, parent: QGraphicsItem|None=None):
+    def __init__(self, event: EventModel, parent: QGraphicsItem|None=None):
         QGraphicsObject.__init__(self, parent)
         self._event = event
-        self._color = QColor(color)
         # required re-paint on hover in/out
         self.setAcceptHoverEvents(True)
         # set focusable to allow receiving keyPress/Release events
@@ -45,11 +44,13 @@ class EventView(QGraphicsObject):
         self._press_x:          int = None
         event.first_changed.connect(self.onEventFirstChanged)
         event.last_changed.connect(self.onEventLastChanged)
-
-    def set_color(self, color: QColor):
-        self._color = color
-        self.update()
-
+        
+        # updates on color changed
+        event.color_changed.connect(lambda *_: self.update())
+        event.label_changed.connect(lambda *_: self.update())
+        event.timeline.colors.color_changed.connect(lambda *_: self.update())
+        event.timeline.color_changed.connect(lambda *_: self.update())
+        
     def _update_geometry(self):
         self.prepareGeometryChange()
         x0_                 = self._event.first - self.ADD_W
@@ -64,15 +65,6 @@ class EventView(QGraphicsObject):
     
     def boundingRect(self) -> QRectF:
         return self._outer_rect
-
-    @property
-    def color(self) -> QColor:
-        return self._color
-    @color.setter
-    def color(self, color: QColor):
-        if color != self._color:
-            self._color = color
-            self.update()
 
     def _set_state(self, state: EventViewState):
         if state == self._state: return
@@ -227,7 +219,7 @@ class EventView(QGraphicsObject):
             painter.drawLine(self._rhdl_line)
         # draw central part on top
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(self._color)
+        painter.setBrush(self._event.get_final_color())
         painter.drawRect(self._inner_rect)
 
     def onEventFirstChanged(self, frame_id: int):
