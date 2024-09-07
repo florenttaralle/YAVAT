@@ -14,7 +14,9 @@ class XYValue:
         return 2
     def __getitem__(self, idx: int) -> float: 
         return self.x if idx == 0 else self.y
-
+    def __lt__(self, other: XYValue):
+        return self.x < other.x
+    
 class TimeseriesModel(AnnotationModel):
     y_range_changed = pyqtSignal(float, float)
     "SIGNAL: yrange_changed(ymin: float, ymax: float)"
@@ -28,7 +30,7 @@ class TimeseriesModel(AnnotationModel):
         if name is None:
             name = f"Timeseries {next(self.next_id_generator)}"
         AnnotationModel.__init__(self, duration, name, color, visible, selected, parent)
-        self._xy_values = [XYValue(x, y) for x, y in (xy_values or [])]
+        self._xy_values = sorted([XYValue(x, y) for x, y in (xy_values or [])])
         self._ymin      = ymin
         self._ymax      = ymax
 
