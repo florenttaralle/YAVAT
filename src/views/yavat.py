@@ -96,6 +96,8 @@ class YavatView(QMainWindow):
         self._player_view.set_video(self._yavat.video)
         self._annotations_view.set_context(self._yavat.time_window, self._yavat.annotations)
         self._values_grid_view.set_context(self._yavat.time_window, self._yavat.annotations)
+        if self._yavat.video.valid:
+            self._yavat.video.play()
 
     def onActCloseFile(self):
         self.set_yavat(None)
@@ -170,7 +172,7 @@ class YavatView(QMainWindow):
         filename, _ = QFileDialog.getOpenFileName(None, 
                                                   "Load YAVAT Profile",
                                                   self._profile.path,
-                                                  "YAVAT Profile (*.json, *.yavat_profile, *.yvtp)")
+                                                  "YAVAT Profile (*.json *.yavat_profile *.yvtp)")
         if filename == '': return
         self._load_profile(filename)
     
@@ -184,7 +186,7 @@ class YavatView(QMainWindow):
         filename, _ = QFileDialog.getSaveFileName(None, 
                                                   "Save YAVAT Profile",
                                                   self._profile.path,
-                                                  "YAVAT Profile (*.json, *.yavat_profile, *.yvtp)")
+                                                  "YAVAT Profile (*.json *.yavat_profile *.yvtp)")
         if filename == '': return
         self._profile.save(filename)
 
