@@ -8,20 +8,20 @@ from src.models.yavat import YavatModel
 from src.models.timeseries import TimeseriesModel
 from src.models.timeline import TimelineModel, EventModel
 from src.icons import Icons
-from src.models.profile import ProfileModel
+from src.models.template import TemplateModel
 from .columns_model import ColumnsModel, Column
 from .column_function import ColumnFunction
 from .columns_view import ColumnsView
 
 class DataImportDialog(QDialog):
     def __init__(self, df: pd.DataFrame, yavat: YavatModel, 
-                 profile: ProfileModel|None=None, parent: QWidget|None=None):
+                 template: TemplateModel|None=None, parent: QWidget|None=None):
         QDialog.__init__(self, parent)
         self.setMinimumWidth(1200)
         self.setMinimumHeight(600)
         self._df        = df
         self._yavat     = yavat
-        self._profile   = profile
+        self._template   = template
         self.setWindowTitle("Import Annotations")
         self.setModal(True)
         self.setLayout(QVBoxLayout())
@@ -128,8 +128,8 @@ class DataImportDialog(QDialog):
                                                         zip(x_values, y_values),
                                                         column.min, column.max,
                                                         column.name)
-                            if self._profile is not None:
-                                self._profile.update_annotation(timeseries)
+                            if self._template is not None:
+                                self._template.update_annotation(timeseries)
                             self._yavat.annotations.append(timeseries)
 
                         case ColumnFunction.TimelineSingle:
@@ -146,8 +146,8 @@ class DataImportDialog(QDialog):
                                     timelines[timeline_name] = TimelineModel(self._yavat.video.n_frames, timeline_name)
                                 timelines[timeline_name].add(EventModel(first, last))
                             for timeline in timelines.values():
-                                if self._profile is not None:
-                                    self._profile.update_annotation(timeline)
+                                if self._template is not None:
+                                    self._template.update_annotation(timeline)
                                 self._yavat.annotations.append(timeline)
 
                 return True
@@ -170,7 +170,7 @@ class DataImportDialog(QDialog):
         return groups
 
     @classmethod
-    def import_from_file(cls, yavat: YavatModel, profile: ProfileModel|None=None, parent: QWidget|None=None) -> bool:
+    def import_from_file(cls, yavat: YavatModel, template: TemplateModel|None=None, parent: QWidget|None=None) -> bool:
         # pick the file
         CSV_EXT     = [".csv", ".txt"]
         JSON_EXT    = [".json"]
@@ -205,7 +205,7 @@ class DataImportDialog(QDialog):
         # pick dialog
         if not error:
             try:
-                return cls(df, yavat, profile, parent).exec()
+                return cls(df, yavat, template, parent).exec()
             except Exception as what:
                 error = str(what)
         QMessageBox.warning(None, "Error Importing Timeseries", error, 

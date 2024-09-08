@@ -6,6 +6,7 @@ from PyQt6.QtGui import QIcon
 class Icons(Enum):
     __ICON_FOLDER__ = "assets/icons/"
     Yavat           = "yavat.png"
+    YavatTemplate   = "yavat_template.png"
     Close           = "close.png"
     Quit            = "quit.png"
 

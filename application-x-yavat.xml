@@ -6,10 +6,10 @@
     <glob pattern="*.yvt"/>
     <icon name="x-yavat"/>
   </mime-type>
-  <mime-type type="application/x-yavat-profile">
-    <comment>YAVAT Profile File</comment>
-    <glob pattern="*.yavat_profile"/>
-    <glob pattern="*.yvtp"/>
-    <icon name="x-yavat"/>
+  <mime-type type="application/x-yavat-template">
+    <comment>YAVAT Template File</comment>
+    <glob pattern="*.yavat_template"/>
+    <glob pattern="*.yvtt"/>
+    <icon name="x-yavat-template"/>
   </mime-type>
 </mime-info>

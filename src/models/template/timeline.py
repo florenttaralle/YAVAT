@@ -6,7 +6,7 @@ from src.models.timeline import TimelineModel, AnnotationModel
 
 
 @attr.define
-class TimelineProfileModel:
+class TimelineTemplateModel:
     name:   str
     color:  QColor|None = None
     colors: Mapping[str, QColor|None] = attr.field(factory=list)
@@ -27,7 +27,7 @@ class TimelineProfileModel:
             return False
 
     @classmethod
-    def parse(cls, data) -> TimelineProfileModel:
+    def parse(cls, data) -> TimelineTemplateModel:
         name = data.get("name", "")
         color = data.get("color", None)
         if color is not None:
@@ -36,5 +36,5 @@ class TimelineProfileModel:
         return cls(name, color, colors)
 
     @classmethod
-    def from_timeline(cls, timeline: TimelineModel) -> TimelineProfileModel:
+    def from_timeline(cls, timeline: TimelineModel) -> TimelineTemplateModel:
         return cls(timeline.name, timeline.color, timeline.colors.data())

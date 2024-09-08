@@ -5,7 +5,7 @@ from src.models.timeseries import TimeseriesModel, AnnotationModel
 
 
 @attr.define
-class TimeseriesProfileModel:
+class TimeseriesTemplateModel:
     name:   str
     color:  QColor|None = None
     ymin:   float|None = None
@@ -33,7 +33,7 @@ class TimeseriesProfileModel:
             return False
 
     @classmethod
-    def parse(cls, data) -> TimeseriesProfileModel:
+    def parse(cls, data) -> TimeseriesTemplateModel:
         name    = data.get("name", "")
         color   = data.get("color", None)
         if color is not None:
@@ -43,5 +43,5 @@ class TimeseriesProfileModel:
         return cls(name, color, ymin, ymax)
 
     @classmethod
-    def from_timeseries(cls, timeseries: TimeseriesModel) -> TimeseriesProfileModel:
+    def from_timeseries(cls, timeseries: TimeseriesModel) -> TimeseriesTemplateModel:
         return cls(timeseries.name, timeseries.color, timeseries.ymin, timeseries.ymax)

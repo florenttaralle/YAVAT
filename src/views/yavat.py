@@ -6,18 +6,22 @@ from src.models.yavat import YavatModel
 from src.views.player import PlayerView
 from src.views.annotation_list import AnnotationListView
 from src.views.dialogs.data_import import DataImportDialog
-from src.models.profile import ProfileModel
+from src.models.template import TemplateModel
 from src.views.values_grid import ValuesGridView
 from src.icons import Icons
 
 class YavatView(QMainWindow):
-    def __init__(self, path: str|None=None, profile_path: str|None=None):
+    VIDEO_EXT       = ["*.avi", "*.mp4"]
+    YAVAT_EXT       = ["*.yavat", "*.yvt"]
+    TEMPLATE_EXT    = ["*.yavat_template", "*.yvtt"]
+    
+    def __init__(self, path: str|None=None, template_path: str|None=None):
         QMainWindow.__init__(self)
         self._yavat:            YavatModel|None = None
         self._player_view       = PlayerView()
         self._annotations_view  = AnnotationListView()
         self._values_grid_view  = ValuesGridView()
-        self._profile           = ProfileModel()
+        self._template           = TemplateModel()
 
         self.setWindowTitle("YAVAT - Yet Another Video Annotation Tool")
         self.setWindowIcon(Icons.Yavat.icon())
@@ -51,13 +55,13 @@ class YavatView(QMainWindow):
         self._act_close.triggered.connect(self.onActCloseFile)
 
         file_menu.addSeparator()
-        self.act_load_profile = file_menu.addAction(Icons.Load.icon(), "Load Profile")
-        self.act_load_profile.triggered.connect(self.onActLoadProfile)
-        self.act_use_as_profile = file_menu.addAction(Icons.Save.icon(), "Use as Profile")
-        self.act_use_as_profile.triggered.connect(self.onActUseAsProfile)
-        self.act_use_as_profile.setEnabled(False)
-        self.act_save_profile = file_menu.addAction(Icons.Save.icon(), "Save Profile")
-        self.act_save_profile.triggered.connect(self.onActSaveProfile)
+        self.act_load_template = file_menu.addAction(Icons.Load.icon(), "Load Template")
+        self.act_load_template.triggered.connect(self.onActLoadTemplate)
+        self.act_use_as_template = file_menu.addAction(Icons.Save.icon(), "Use as Template")
+        self.act_use_as_template.triggered.connect(self.onActUseAsTemplate)
+        self.act_use_as_template.setEnabled(False)
+        self.act_save_template = file_menu.addAction(Icons.Save.icon(), "Save Template")
+        self.act_save_template.triggered.connect(self.onActSaveTemplate)
         
         file_menu.addSeparator()
         act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
@@ -73,8 +77,8 @@ class YavatView(QMainWindow):
         if path is not None:
             self._load(path)
             
-        if profile_path is not None:
-            self._load_profile(profile_path)
+        if template_path is not None:
+            self._load_template(template_path)
 
     def set_yavat(self, yavat: YavatModel|None):
         if self._yavat is not None:
@@ -101,7 +105,7 @@ class YavatView(QMainWindow):
 
     def onActCloseFile(self):
         self.set_yavat(None)
-        self.act_use_as_profile.setEnabled(False)
+        self.act_use_as_template.setEnabled(False)
 
     def onActLoad(self):
         if self._yavat and self._yavat.yavat_path:
@@ -111,14 +115,12 @@ class YavatView(QMainWindow):
         else:
             folder = None
         
-        VIDEO_EXT = ["*.avi", "*.mp4"]
-        YAVAT_EXT = ["*.yavat", "*.yvt"]
         filename,  _ = QFileDialog.getOpenFileName(None, "Load YAVAT annotations", 
                                             folder,
                                             ";;".join([
-                                                "Video or YAVAT ({ext})".format(ext=" ".join(VIDEO_EXT + YAVAT_EXT)),
-                                                "Video ({ext})".format(ext=" ".join(VIDEO_EXT)),
-                                                "YAVAT Annotations ({ext})".format(ext=" ".join(YAVAT_EXT)),
+                                                "Video or YAVAT ({ext})".format(ext=" ".join(self.VIDEO_EXT + self.YAVAT_EXT)),
+                                                "Video ({ext})".format(ext=" ".join(self.VIDEO_EXT)),
+                                                "YAVAT Annotations ({ext})".format(ext=" ".join(self.YAVAT_EXT)),
                                                 "All (*)",
                                             ]))
         if filename == '': return
@@ -136,7 +138,7 @@ class YavatView(QMainWindow):
         filename, _ = QFileDialog.getSaveFileName(None, 
                                                   "Save YAVAT annotations",
                                                   default_path,
-                                                  "YAVAT Annotations (*.json, *.yavat, *.yvt)")
+                                                  "YAVAT Annotations ({ext})".format(ext=" ".join(self.YAVAT_EXT)))
         if filename == '': return
         self._save(filename)
 
@@ -151,43 +153,43 @@ class YavatView(QMainWindow):
             yavat = YavatModel.load(path)
         except Exception as what:
             QMessageBox.warning(self, "Error Loading", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-        self.act_use_as_profile.setEnabled(True)
+        self.act_use_as_template.setEnabled(True)
 
         try:
-            self._profile.update_annotations(yavat.annotations, True)
+            self._template.update_annotations(yavat.annotations, True)
         except Exception as what:
-            QMessageBox.warning(self, "Error Applying Profile", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+            QMessageBox.warning(self, "Error Applying Template", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
 
         self.set_yavat(yavat)
 
     def onActImportData(self):
-        DataImportDialog.import_from_file(self._yavat, self._profile, self)
+        DataImportDialog.import_from_file(self._yavat, self._template, self)
     
-    def _load_profile(self, path: str):
-        self._profile = ProfileModel.load(path)
+    def _load_template(self, path: str):
+        self._template = TemplateModel.load(path)
         if self._yavat is not None:
-            self._profile.update_annotations(self._yavat.annotations, True)
+            self._template.update_annotations(self._yavat.annotations, True)
 
-    def onActLoadProfile(self):
+    def onActLoadTemplate(self):
         filename, _ = QFileDialog.getOpenFileName(None, 
-                                                  "Load YAVAT Profile",
-                                                  self._profile.path,
-                                                  "YAVAT Profile (*.json *.yavat_profile *.yvtp)")
+                                                  "Load YAVAT Template",
+                                                  self._template.path,
+                                                  "YAVAT Template ({ext})".format(ext=" ".join(self.TEMPLATE_EXT)))
         if filename == '': return
-        self._load_profile(filename)
+        self._load_template(filename)
     
-    def onActUseAsProfile(self):
+    def onActUseAsTemplate(self):
         if self._yavat is not None:
-            old_path = self._profile.path
-            self._profile = ProfileModel.from_annotations(self._yavat.annotations)
-            self._profile.path = old_path
+            old_path = self._template.path
+            self._template = TemplateModel.from_annotations(self._yavat.annotations)
+            self._template.path = old_path
 
-    def onActSaveProfile(self):
+    def onActSaveTemplate(self):
         filename, _ = QFileDialog.getSaveFileName(None, 
-                                                  "Save YAVAT Profile",
-                                                  self._profile.path,
-                                                  "YAVAT Profile (*.json *.yavat_profile *.yvtp)")
+                                                  "Save YAVAT Template",
+                                                  self._template.path,
+                                                  "YAVAT Template ({ext})".format(ext=" ".join(self.TEMPLATE_EXT)))
         if filename == '': return
-        self._profile.save(filename)
+        self._template.save(filename)
 
     
