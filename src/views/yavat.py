@@ -79,14 +79,14 @@ class YavatView(QMainWindow):
     def set_yavat(self, yavat: YavatModel|None):
         if self._yavat is not None:
             self._yavat.video.ready_changed.disconnect(self.onVideoReadyChanged)
-        self._yavat = yavat
-        if self._yavat is not None:
-            self._yavat.video.ready_changed.connect(self.onVideoReadyChanged)            
-        else:
             self._player_view.set_video(None)
             self._annotations_view.set_context(None, None)
             self._values_grid_view.set_context(None, None)
-            
+
+        self._yavat = yavat
+        if yavat is not None:
+            yavat.video.ready_changed.connect(self.onVideoReadyChanged)            
+
         self._act_save.setEnabled(self._yavat is not None)
         self._act_save_as.setEnabled(self._yavat is not None)
         self._act_import_ts.setEnabled(self._yavat is not None)

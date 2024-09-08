@@ -7,8 +7,7 @@ from src.models.annotation_list import AnnotationListModel
 from src.models.time_window import TimeWindowModel
 from src.models.annotation import AnnotationModel
 from src.models.timeseries import TimeseriesModel
-from src.models.annotation_value_watcher import AnnotationValueWatcherModel
-from src.models.annotation_name_watcher import AnnotationNameWatcher
+from src.models.annotation_watchers import AnnotationWatcherSingleton, AnnotationNameWatcher, AnnotationValueWatcherModel
 from src.icons import Icons
             
 class ValueGridModel(QAbstractTableModel):
@@ -81,9 +80,11 @@ class ValueGridModel(QAbstractTableModel):
 
     def onAnnotationsItemAdded(self, annotation: AnnotationModel):
         self.beginResetModel()
-        self._value_watchers[annotation] = AnnotationValueWatcherModel(annotation, self._time_window)
+        self._value_watchers[annotation] = AnnotationWatcherSingleton.get_or_create(
+            AnnotationValueWatcherModel, annotation, self._time_window)
         self._value_watchers[annotation].value_changed.connect(self.onAnnotationValueChanged)
-        self._name_watchers[annotation] = AnnotationNameWatcher(annotation)
+        self._name_watchers[annotation] = AnnotationWatcherSingleton.get_or_create(
+            AnnotationNameWatcher, annotation)
         self._name_watchers[annotation].name_changed.connect(self.onAnnotationNameChanged)
         self.endResetModel()
 

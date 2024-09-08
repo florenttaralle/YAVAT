@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget
 # ##################################################################
 from src.models.time_window import TimeWindowModel
 from src.models.timeline import TimelineModel, EventModel
+from src.models.annotation_watchers import AnnotationWatcherSingleton, AnnotationValueWatcherModel
 from src.views.annotation import AnnotationView, AnnotationHeaderView
 from src.views.timeline_graph import TimelineGraphView
 from src.views.dialogs.event_editor import EventEditorDialog
@@ -15,17 +16,20 @@ class TimelineView(AnnotationView):
         header  = AnnotationHeaderView(timeline, True)
         graph   = TimelineGraphView(time_window, timeline)
         AnnotationView.__init__(self, timeline, time_window, header, graph, parent)
-        self._set_value()
-        self._time_window.position_changed.connect(lambda *_: self._set_value())
+        self._watcher = AnnotationWatcherSingleton.get_or_create(
+            AnnotationValueWatcherModel, timeline, time_window)
+        self._watcher.value_changed.connect(self.onValueChanged)
+        self._set_value(self._watcher.value)
 
     @property
     def timeline(self) -> TimelineModel:
         return self._annotation
+
+    def _set_value(self, value: str|None):
+        self._header._value_lbl.setText((value or "") + " >")
     
-    def _set_value(self):
-        event = self.timeline.at_frame_id(self._time_window.position)
-        value = (event.label) if event else ""
-        self._header._value_lbl.setText(value + " >")
+    def onValueChanged(self, timeline: TimelineModel, frame_id: int, value: float|None):
+        self._set_value(value)
 
     def onGraphContextMenu(self, frame_id: int, cm_event):
         AnnotationView.onGraphContextMenu(self, frame_id, cm_event)

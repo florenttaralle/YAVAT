@@ -17,7 +17,10 @@ class YavatModel(QObject):
         self._video             = video
         self._annotations       = annotations or AnnotationListModel(video.n_frames)
         self._yavat_path        = yavat_path
-        
+
+        self._video.setParent(self)
+        self._annotations.setParent(self)
+
     @property
     def video(self) -> VideoModel:
         return self._video
