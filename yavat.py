@@ -7,10 +7,11 @@ from src.views.yavat import YavatView
 
 parser = ap.ArgumentParser()
 parser.add_argument('path', nargs='?', default=None)
+parser.add_argument('-p', '--profile')
 args = parser.parse_args()
 
 app = QApplication([])
-window = YavatView(args.path)
+window = YavatView(args.path, args.profile)
 window.show()
 app.exec()
 

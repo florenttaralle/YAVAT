@@ -3,6 +3,13 @@
   <mime-type type="application/x-yavat">
     <comment>YAVAT Annotation File</comment>
     <glob pattern="*.yavat"/>
+    <glob pattern="*.yvt"/>
+    <icon name="x-yavat"/>
+  </mime-type>
+  <mime-type type="application/x-yavat-profile">
+    <comment>YAVAT Profile File</comment>
+    <glob pattern="*.yavat_profile"/>
+    <glob pattern="*.yvtp"/>
     <icon name="x-yavat"/>
   </mime-type>
 </mime-info>

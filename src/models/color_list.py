@@ -37,4 +37,6 @@ class ColorListModel(QObject):
             for name, color in self._colors.items()
         }
     
-    
+    def update(self, colors: Mapping[str, QColor|None]) -> ColorListModel:
+        self._colors.update(colors)
+        return self

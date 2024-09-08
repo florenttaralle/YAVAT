@@ -15,7 +15,7 @@ class YavatModel(QObject):
                  yavat_path: str|None=None, parent: QObject|None=None):
         QObject.__init__(self, parent)
         self._video             = video
-        self._annotations       = annotations or AnnotationListModel()
+        self._annotations       = annotations or AnnotationListModel(video.n_frames)
         self._yavat_path        = yavat_path
         
     @property
@@ -61,7 +61,7 @@ class YavatModel(QObject):
             assert cls.VERSION_KEY in data, 'Not a Yavat Annotation File'
             version     = VersionModel.from_str(data.get(cls.VERSION_KEY, '0.0.0'))
             assert version.compatible(YAVAT_VERSION), f"Yavat Annotation File Version {str(version)} not compatible with Yavat Application Version {str(YAVAT_VERSION)}"
-            annotations = AnnotationListModel.parse(data['annotations'])
+            annotations = AnnotationListModel.parse(data['video']['duration_frames'], data['annotations'])
 
             if video_path is None:
                 video_path = os.path.join(os.path.dirname(yavat_path), data['video']['video_filename'])
@@ -84,3 +84,4 @@ class YavatModel(QObject):
         }
         with open(self._yavat_path, 'wt') as annotation_file:
             json.dump(content, annotation_file, indent=2)
+    

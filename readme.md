@@ -16,7 +16,7 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 
 ## Features 
 
-### Version 1.6.1
+### Version 1.7.0
 
 - Create/Edit/Delete Annotation Timelines.
 - Create/Edit/Delete Events on a timeline.
@@ -28,9 +28,11 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 - Save/Load Annotations in a JSON-based YAVAT File.
 - Show named timeseries stored in the annotation file.
 - Show Current values in a grid.
+- Define/Save/Load Profile.
 
 ### TODO / Suggestions
 
+- Implement Profile edition dialog.
 - Copy Current Values to clipboard.
 - Implement Annotation Grid (like in ELAN)
 
@@ -45,10 +47,10 @@ sudo apt install qtmultimedia
 sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
 ```
 
-Optionaly you can register the application to access it in the application pannel
+Optionaly you can register the application and mime-type to associate yavat files with the application.
 
 ``` shell
-# register new mime-type
+# register new mime-types
 xdg-mime install --novendor --mode user application-x-yavat.xml
 update-mime-database ~/.local/share/mime
 
@@ -77,6 +79,7 @@ positional arguments:
 
 options:
   -h, --help  show this help message and exit
+  -p PROFILE, --profile PROFILE
 ```
 
 ## Application Shortcuts
@@ -131,6 +134,17 @@ Event color is specified in that order
 1. A color is set for this particular event (in event edition dialog).
 2. A color is set for this label on this timeline (in event edition dialog).
 3. A color is set for the timeline (in the timeline edition dialog).
+
+# Using Profiles
+
+A profile is a list of default annotations configurations (name, color, ...).
+This allows to create and configure annotations for multiple video files.
+That way, you dont need to settup annotations for all videos when working in a project (save some precious time <3 ).
+
+The profile is automaticaly applied (1) after loading it from file, (2) when loading a YAVAT annotation file, (3) when loading a video file.
+When a profile is applied, any missing timeline is created, timelines and timeseries atrributes are updated.
+
+To build a profile, you need (1) to setup annotations for a video, (2) set the profile from the annotations, (3) save the profile.
 
 # Contributing
 

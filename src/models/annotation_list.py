@@ -15,8 +15,9 @@ class AnnotationListModel(QObject):
     item_moved          = pyqtSignal(AnnotationModel, int, int)
     "SIGNAL: item_moved(annotation: AnnotationModel, prv_index: int, new_index: int)"    
 
-    def __init__(self, annotations: List[AnnotationModel]=None, parent: QObject|None=None):
+    def __init__(self, duration: int, annotations: List[AnnotationModel]=None, parent: QObject|None=None):
         QObject.__init__(self, parent)
+        self._duration = duration
         self._annotations: List[AnnotationModel] = []
         self._selected: AnnotationModel|None = None
         for annotation in annotations or []:
@@ -25,14 +26,18 @@ class AnnotationListModel(QObject):
     def data(self):
         return [annotation.data() for annotation in self._annotations]
 
+    @property
+    def duration(self) -> int:
+        return self._duration
+
     @classmethod
-    def parse(cls, data):
+    def parse(cls, duration: int, data):
         def factory(data_):
             if data_['type'] == TimelineModel.__name__:
                 return TimelineModel.parse({k:v for k, v in data_.items() if k != "type"})
             else:
                 return TimeseriesModel.parse({k:v for k, v in data_.items() if k != "type"})
-        return cls([factory(annotation) for annotation in data])
+        return cls(duration, [factory(annotation) for annotation in data])
 
     @property
     def selected(self) -> AnnotationModel|None:

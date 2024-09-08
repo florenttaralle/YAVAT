@@ -6,16 +6,18 @@ from src.models.yavat import YavatModel
 from src.views.player import PlayerView
 from src.views.annotation_list import AnnotationListView
 from src.views.dialogs.data_import import DataImportDialog
+from src.models.profile import ProfileModel
 from src.views.values_grid import ValuesGridView
 from src.icons import Icons
 
 class YavatView(QMainWindow):
-    def __init__(self, path: str|None=None):
+    def __init__(self, path: str|None=None, profile_path: str|None=None):
         QMainWindow.__init__(self)
         self._yavat:            YavatModel|None = None
         self._player_view       = PlayerView()
         self._annotations_view  = AnnotationListView()
         self._values_grid_view  = ValuesGridView()
+        self._profile           = ProfileModel()
 
         self.setWindowTitle("YAVAT - Yet Another Video Annotation Tool")
         self.setWindowIcon(Icons.Yavat.icon())
@@ -30,7 +32,7 @@ class YavatView(QMainWindow):
         annotations_dock.setAllowedAreas(Qt.DockWidgetArea.AllDockWidgetAreas)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, annotations_dock, Qt.Orientation.Vertical)
 
-        # add menu for save/load annotations (here is dirty)
+        # add menu for save/load annotations
         file_menu = self.menuBar().addMenu("&File")
         act_load = file_menu.addAction(Icons.Load.icon(), "Load")
         act_load.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_O))
@@ -49,6 +51,15 @@ class YavatView(QMainWindow):
         self._act_close.triggered.connect(self.onActCloseFile)
 
         file_menu.addSeparator()
+        self.act_load_profile = file_menu.addAction(Icons.Load.icon(), "Load Profile")
+        self.act_load_profile.triggered.connect(self.onActLoadProfile)
+        self.act_use_as_profile = file_menu.addAction(Icons.Save.icon(), "Use as Profile")
+        self.act_use_as_profile.triggered.connect(self.onActUseAsProfile)
+        self.act_use_as_profile.setEnabled(False)
+        self.act_save_profile = file_menu.addAction(Icons.Save.icon(), "Save Profile")
+        self.act_save_profile.triggered.connect(self.onActSaveProfile)
+        
+        file_menu.addSeparator()
         act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
         act_quit.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Q))
         act_quit.triggered.connect(self.close)
@@ -61,6 +72,9 @@ class YavatView(QMainWindow):
         self.set_yavat(None)
         if path is not None:
             self._load(path)
+            
+        if profile_path is not None:
+            self._load_profile(profile_path)
 
     def set_yavat(self, yavat: YavatModel|None):
         if self._yavat is not None:
@@ -85,6 +99,7 @@ class YavatView(QMainWindow):
 
     def onActCloseFile(self):
         self.set_yavat(None)
+        self.act_use_as_profile.setEnabled(False)
 
     def onActLoad(self):
         if self._yavat and self._yavat.yavat_path:
@@ -95,7 +110,7 @@ class YavatView(QMainWindow):
             folder = None
         
         VIDEO_EXT = ["*.avi", "*.mp4"]
-        YAVAT_EXT = ["*.yavat"]
+        YAVAT_EXT = ["*.yavat", "*.yvt"]
         filename,  _ = QFileDialog.getOpenFileName(None, "Load YAVAT annotations", 
                                             folder,
                                             ";;".join([
@@ -117,9 +132,9 @@ class YavatView(QMainWindow):
         default_path = self._yavat.yavat_path or \
             self._yavat.default_path(self._yavat.video.path)
         filename, _ = QFileDialog.getSaveFileName(None, 
-                                                  "Save AYAT annotations",
+                                                  "Save YAVAT annotations",
                                                   default_path,
-                                                  "YAVAT Annotations (*.json, *.yavat)")
+                                                  "YAVAT Annotations (*.json, *.yavat, *.yvt)")
         if filename == '': return
         self._save(filename)
 
@@ -134,9 +149,43 @@ class YavatView(QMainWindow):
             yavat = YavatModel.load(path)
         except Exception as what:
             QMessageBox.warning(self, "Error Loading", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-        else:
-            self.set_yavat(yavat)
+        self.act_use_as_profile.setEnabled(True)
+
+        try:
+            self._profile.update_annotations(yavat.annotations, True)
+        except Exception as what:
+            QMessageBox.warning(self, "Error Applying Profile", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+
+        self.set_yavat(yavat)
 
     def onActImportData(self):
-        DataImportDialog.import_from_file(self._yavat, self)
+        DataImportDialog.import_from_file(self._yavat, self._profile, self)
+    
+    def _load_profile(self, path: str):
+        self._profile = ProfileModel.load(path)
+        if self._yavat is not None:
+            self._profile.update_annotations(self._yavat.annotations, True)
+
+    def onActLoadProfile(self):
+        filename, _ = QFileDialog.getOpenFileName(None, 
+                                                  "Load YAVAT Profile",
+                                                  self._profile.path,
+                                                  "YAVAT Profile (*.json, *.yavat_profile, *.yvtp)")
+        if filename == '': return
+        self._load_profile(filename)
+    
+    def onActUseAsProfile(self):
+        if self._yavat is not None:
+            old_path = self._profile.path
+            self._profile = ProfileModel.from_annotations(self._yavat.annotations)
+            self._profile.path = old_path
+
+    def onActSaveProfile(self):
+        filename, _ = QFileDialog.getSaveFileName(None, 
+                                                  "Save YAVAT Profile",
+                                                  self._profile.path,
+                                                  "YAVAT Profile (*.json, *.yavat_profile, *.yvtp)")
+        if filename == '': return
+        self._profile.save(filename)
+
     
