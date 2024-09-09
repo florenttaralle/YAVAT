@@ -32,28 +32,26 @@ class PlayerView(QWidget):
         self.set_video(video)
 
     def set_video(self, video: VideoModel|None):
-        if self._video is not None:
-            self._video.player.setVideoOutput(None)
-            self._video.frame_id_changed.disconnect(self.onVideoFileFrameIdChanged)        
-            self._video.ready_changed.disconnect(self.onVideoReadyChanged)
+        self._video_item.setVisible(False)
+        self.setEnabled(False)
         self._video = video
         if self._video is not None:
-            self._video_item.setVisible(True)
-            self._first_frame = True
             self._video.player.setVideoOutput(self._video_item)
             self._video.frame_id_changed.connect(self.onVideoFileFrameIdChanged)
             self._video.ready_changed.connect(self.onVideoReadyChanged)
             self.onVideoReadyChanged(video.ready)
         else:
-            self._video_item.setVisible(False)
-            self.setEnabled(False)
+            self._slider.set_video(None)
+            self._bar.set_video(None)
 
     def onVideoReadyChanged(self, ready: bool):
-        self.setEnabled(self._video.valid)
         if self._video.valid:
             self._slider.set_video(self._video)
             self._bar.set_video(self._video)
             self.onVideoFileFrameIdChanged(self._video.ready)
+            self._video_item.setVisible(True)
+            self._first_frame = True
+            self.setEnabled(True)
 
     def onVideoFileFrameIdChanged(self, frame_id: int):
         if self._first_frame:

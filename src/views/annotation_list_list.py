@@ -75,13 +75,8 @@ class AnnotationListListView(QListWidget):
         self._annotations.move(self._annotations.selected, row)
 
     def set_context(self, time_window: TimeWindowModel|None, annotations: AnnotationListModel|None):
-        if self._time_window is not None:
-            self._annotations.selected_changed.disconnect(self.onModelSelectionChanged)
-            self._annotations.item_added.disconnect(self.onAnnotationAdded)
-            self._annotations.item_removed.disconnect(self.onAnnotationRemoved)
-            self._annotations.item_moved.disconnect(self.onAnnotationMoved)
-            self._items.clear()
-            self.clear()
+        self._items.clear()
+        self.clear()
         self._time_window = time_window
         self._annotations = annotations
         if self._time_window is not None:

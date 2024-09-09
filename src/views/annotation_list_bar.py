@@ -27,13 +27,6 @@ class AnnotationListBar(QToolBar):
         self.set_context(time_window, annotations)
 
     def set_context(self, time_window: TimeWindowModel|None, annotations: AnnotationListModel|None):
-        if self._time_window is not None:
-            self._time_window.position_changed.disconnect(self.onTimeWindowPositionChanged)
-            self._time_window.playing_changed.disconnect(self.onTimeWindowPlayingChanged)
-            self._annotations.selected_changed.disconnect(self.onAnnotationSelectedChanged)
-            self._act_zoom_reset.triggered.disconnect(self._time_window.reset)
-            self._act_zoom_in.triggered.disconnect(self._time_window.zoom_in)
-            self._act_zoom_out.triggered.disconnect(self._time_window.zoom_out)
         self._time_window = time_window
         self._annotations = annotations
         if self._time_window is not None:
@@ -187,9 +180,6 @@ class AnnotationListBar(QToolBar):
     
     def _set_crt_event(self, event: EventModel|None) -> bool:
         if event != self._crt_event:
-            if self._crt_event is not None:
-                self._crt_event.first_changed.disconnect(self.onEventFirstChanged)
-                self._crt_event.last_changed.disconnect(self.onEventLastChanged)
             self._crt_event = event
             if self._crt_event is not None:
                 self._crt_event.first_changed.connect(self.onEventFirstChanged)
@@ -223,6 +213,10 @@ class AnnotationListBar(QToolBar):
     # ################################################################
 
     def _update(self):
+        if self._time_window is None:
+            self.setEnabled(False)
+            return 
+
         self.setEnabled(not self._time_window.playing)
 
         # alias for simpler code

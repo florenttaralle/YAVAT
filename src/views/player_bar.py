@@ -65,9 +65,6 @@ class PlayerBarView(QToolBar):
     def set_video(self, video: VideoModel|None):
         self._frame_id_editor.set_video(video)
         self._position_editor.set_video(video)
-        if self._video is not None:
-            self._video.ready_changed.disconnect(self.onVideoReadyChanged)
-            self._video.player.playingChanged.disconnect(self.onVideoPlayingChanged)
         self._video = video
         if self._video is not None:
             self._video.ready_changed.connect(self.onVideoReadyChanged)

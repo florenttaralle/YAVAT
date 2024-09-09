@@ -38,6 +38,7 @@ class ColumnsModel(QAbstractTableModel):
         
     def rowCount(self, index=None):
         return len(self._columns)
+
     def columnCount(self, index=None):
         return len(ModelColumn)
     

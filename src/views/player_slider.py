@@ -36,9 +36,6 @@ class PlayerSlider(QSlider):
         self.set_video(video)
 
     def set_video(self, video: VideoModel|None):
-        if self._video is not None:
-            self._video.ready_changed.disconnect(self.onVideoReadyChanged)
-            self._video.frame_id_changed.disconnect(self.setValue)            
         self._video = video
         if self._video is not None:
             self._video.ready_changed.connect(self.onVideoReadyChanged)

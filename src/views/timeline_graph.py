@@ -48,7 +48,5 @@ class TimelineGraphView(GraphView):
 
     def onEventRemoved(self, event: EventModel):
         view = self._views[event]
-        view.left_click.disconnect(self.onEventLeftClick)
-        self._timeline.color_changed.disconnect(view.set_color)
-        del self._views[event]
         self.removeItem(view)
+        del self._views[event]
