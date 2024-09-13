@@ -16,7 +16,7 @@ Implementation in Python3. It uses PyQt6 and ffmpeg.
 
 ## Features 
 
-### Version 1.8.0
+### Version 1.8.1
 
 - Create/Edit/Delete Annotation Timelines.
 - Create/Edit/Delete Events on a timeline.

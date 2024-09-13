@@ -47,7 +47,8 @@ class YavatModel(QObject):
     
     @classmethod
     def load(cls, path: str):
-        if path.endswith('.yavat'):
+        ext = os.path.splitext(path)[1].lower()
+        if ext in {'.yavat', 'yvt'}:
             yavat_path = path
             video_path = None
         else:
@@ -74,6 +75,7 @@ class YavatModel(QObject):
             annotations = None
 
         video = VideoModel(video_path)
+        assert not video._error, video._error
         return cls(video, annotations, yavat_path)
     
     def save(self, yavat_path: str|None):

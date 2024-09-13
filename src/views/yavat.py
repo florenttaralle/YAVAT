@@ -150,14 +150,16 @@ class YavatView(QMainWindow):
     def _load(self, path: str):
         try:
             yavat = YavatModel.load(path)
+            self.act_use_as_template.setEnabled(True)
         except Exception as what:
             QMessageBox.warning(self, "Error Loading", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-        self.act_use_as_template.setEnabled(True)
+            yavat = None
 
-        try:
-            self._template.update_annotations(yavat.annotations, True)
-        except Exception as what:
-            QMessageBox.warning(self, "Error Applying Template", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+        if yavat is not None:
+            try:
+                self._template.update_annotations(yavat.annotations, True)
+            except Exception as what:
+                QMessageBox.warning(self, "Error Applying Template", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
 
         self.set_yavat(yavat)
 
