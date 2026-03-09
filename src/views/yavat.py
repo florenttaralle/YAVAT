@@ -14,6 +14,8 @@ class YavatView(QMainWindow):
     VIDEO_EXT       = ["*.avi", "*.mp4"]
     YAVAT_EXT       = ["*.yavat", "*.yvt"]
     TEMPLATE_EXT    = ["*.yavat_template", "*.yvtt"]
+    RTTM_EXT        = ["*.rttm"]
+    WHISPERX_EXT    = ["*.json"]
     
     def __init__(self, path: str|None=None, template_path: str|None=None):
         QMainWindow.__init__(self)
@@ -63,6 +65,12 @@ class YavatView(QMainWindow):
         self.act_save_template = file_menu.addAction(Icons.Save.icon(), "Save Template")
         self.act_save_template.triggered.connect(self.onActSaveTemplate)
         
+        file_menu.addSeparator()
+        self.act_load_rttm = file_menu.addAction(Icons.Load.icon(), "Import from RTTM")
+        self.act_load_rttm.triggered.connect(self.onActImportRTTM)        
+        self.act_load_whisperx = file_menu.addAction(Icons.Load.icon(), "Import from WisperX")
+        self.act_load_whisperx.triggered.connect(self.onActImportWisperX)
+
         file_menu.addSeparator()
         act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
         act_quit.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Q))
@@ -193,4 +201,24 @@ class YavatView(QMainWindow):
         if filename == '': return
         self._template.save(filename)
 
-    
+    def onActImportRTTM(self):
+        filename, _ = QFileDialog.getOpenFileName(None, 
+                                                  "Load RTTM Diarisation",
+                                                  self._template.path,
+                                                  "RTTM File ({ext})".format(ext=" ".join(self.RTTM_EXT)))
+        if filename == '': return
+        try:
+            self._yavat.load_rttm(filename)
+        except Exception as what:
+            QMessageBox.warning(self, "Error importing from RTTM", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+
+    def onActImportWisperX(self):
+        filename, _ = QFileDialog.getOpenFileName(None, 
+                                                  "Load WhisperX Diarisation",
+                                                  self._template.path,
+                                                  "RTTM File ({ext})".format(ext=" ".join(self.WHISPERX_EXT)))
+        if filename == '': return
+        try:
+            self._yavat.load_whisperx(filename)
+        except Exception as what:
+            QMessageBox.warning(self, "Error importing from WhisperX", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)

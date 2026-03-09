@@ -120,7 +120,42 @@ I use this tool a lot myself.
 - `Ctrl + Shift + LeftArrow`:   Move the left boundary of the event forward to the current time position.
 - `Ctrl + Shift + RightArrow`:  Move the right boundary of the event backward to the current time position.
 
-# Importing Annotations
+# Importing Annotations from RTTM
+
+You can import per-speaker diarization timelines from RTTM files.
+It will create a new timeline per speaker.
+
+You can use existing tools to process the video file, extract diarization information and export as a RTTM file.
+
+For exemple you can export diarization as RTTM file with [pyannote.audio](https://github.com/pyannote/pyannote-audio).
+
+``` shell
+# extract audio from the video file
+ffmpeg -i INPUT_VIDEO_FILE_PATH -ac 1 -ar 16000 OUTPUT_AUDIO_FILE_PATH
+```
+
+``` python
+# process the audio file and export as RTTM
+from pyannote.audio import Pipeline
+
+pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-community-1", "main")
+output = pipeline(INPUT_AUDIO_FILE_PATH)
+with open(OUTPUT_RTTM_FILE_PATH, "w") as rttm_file:
+    output.speaker_diarization.write_rttm(rttm_file)
+```
+
+# Importing [WhisperX](https://github.com/m-bain/whisperX) Diarization
+
+You can import per-speaker diarization timelines from WhisperX json-formated output. 
+
+``` shell
+whisperx INPUT_VIDEO_PATH \
+  --vad_method [pyannote, silero] \
+  --diarize \
+  --output_format json
+```
+
+# Importing Annotations from table
 
 ![](assets/TimeseriesImportDialog.png)
 

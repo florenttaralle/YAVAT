@@ -71,8 +71,8 @@ class TimelineModel(AnnotationModel):
 
     def can_add(self, first: int, last: int) -> bool:
         assert last >= first
-        if not (0 <= first): return False
-        if not (last < self._duration): return False
+        if 0 > first: return False
+        if last >= self._duration: return False
         return not self.in_range(first, last)
 
     def add(self, event: EventModel) -> EventModel:

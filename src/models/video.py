@@ -83,12 +83,18 @@ class VideoModel(QObject):
     def valid(self) -> bool:
         return self._ready and not self._error
     
-    def to_frame_id(self, position: QTime) -> int:
-        position_s = position.msecsSinceStartOfDay() / 1000
+    def to_frame_id(self, position: QTime|float) -> int:
+        if isinstance(position, QTime):
+            position_s = position.msecsSinceStartOfDay() / 1000
+        else:
+            position_s = position
         return round(self._stream_info.fps * position_s)
 
+    def to_position_s(self, frame_id: int) -> float:
+        return frame_id / self._stream_info.fps
+
     def to_position(self, frame_id: int) -> QTime:
-        position_ms = round(1000 * frame_id / self._stream_info.fps)
+        position_ms = round(1000 * self.to_position_s(frame_id))
         return QTime.fromMSecsSinceStartOfDay(position_ms)
     
     @property

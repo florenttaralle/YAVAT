@@ -1,9 +1,14 @@
 from __future__ import annotations
+import os, json, itertools as it
+
 from PyQt6.QtCore import QObject, pyqtSignal
-import os, json
+
 from src.models.video import VideoModel, TimeWindowModel
+from src.models.timeline import TimelineModel, EventModel
 from src.models.annotation_list import AnnotationListModel
 from src.version import YAVAT_VERSION, VersionModel
+from src.models.external.rttm import RTTMModel, RTTMType
+from src.models.external.whisperx import WhisperXModel
 
 class YavatModel(QObject):
     yavat_path_changed  = pyqtSignal(object)
@@ -90,3 +95,53 @@ class YavatModel(QObject):
         with open(self._yavat_path, 'wt') as annotation_file:
             json.dump(content, annotation_file, indent=2)
     
+    def load_rttm(self, rttm_path: str):
+        # load rttm file content
+        rttm = RTTMModel.load(rttm_path)
+        # keep only the speaker entries
+        rttm.entries = [entry for entry in rttm.entries if entry.entry_type == RTTMType.SPEAKER]
+        assert len(rttm.entries), 'No Speaker entry found'
+        # sort by speaker
+        rttm.entries.sort(key=lambda entry: entry.speaker_name)
+        # build a new timeline per speaker
+        existing_names = {annotation.name for annotation in self._annotations}
+        for speaker, entries in it.groupby(rttm.entries, key=lambda entry: entry.speaker_name):
+            name = speaker if speaker not in existing_names else f"{speaker}_new"
+            timeline = TimelineModel(self._video.n_frames, name)
+            for start_s, stop_s in entries:
+                first = self._video.to_frame_id(start_s)
+                last = self._video.to_frame_id(stop_s)
+                if timeline.can_add(first, last):
+                    event = EventModel(first, last)
+                    timeline.add(event)
+            self._annotations.append(timeline)
+
+    def load_whisperx(self, json_path: str):
+        # load data from the json file
+        assert os.path.exists(json_path), 'File not found'
+        try:
+            with open(json_path) as json_file:
+                data = json.load(json_file)
+        except Exception:
+            raise RuntimeError("Invalid Json format")
+
+        try:
+            whisperx = WhisperXModel.model_validate(data)
+        except Exception as what:
+            print(what)
+            raise RuntimeError("Invalid WhisperX format")
+        
+        # sort & group by speaker
+        whisperx.segments.sort(key=lambda segment: segment.speaker)
+        # build timeline per speaker
+        existing_names = {annotation.name for annotation in self._annotations}
+        for speaker, segments in it.groupby(whisperx.segments, key=lambda segment: segment.speaker):
+            name = speaker if speaker not in existing_names else f"{speaker}_new"
+            timeline = TimelineModel(self._video.n_frames, name)
+            for segment in segments:
+                first = self._video.to_frame_id(segment.start)
+                last = self._video.to_frame_id(segment.end)
+                if timeline.can_add(first, last):
+                    event = EventModel(first, last, label=segment.text)
+                    timeline.add(event)
+            self._annotations.append(timeline)
