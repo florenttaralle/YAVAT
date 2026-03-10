@@ -11,7 +11,7 @@ from src.models.annotation_list import AnnotationListModel
 from src.version import YAVAT_VERSION, VersionModel
 from src.models.external.rttm import RTTMModel, RTTMType
 from src.models.external.whisperx import WhisperXModel
-from src.models.external.audio_rms import export_audio_rms_aligned_on_video_frames
+from src.models.external.audio import extract_audio_waveforms, extract_audio_rms_aligned_on_video_frames
 
 class YavatModel(QObject):
     yavat_path_changed  = pyqtSignal(object)
@@ -149,8 +149,20 @@ class YavatModel(QObject):
                     timeline.add(event)
             self._annotations.append(timeline)
 
-    def load_audio(self):
-        audio_channels = export_audio_rms_aligned_on_video_frames(
+    def load_audio_waveforms(self):
+        audio_channels = extract_audio_waveforms(
+            self._video.path,
+            self._video.fps,
+            100,
+            self._video.n_frames,
+        )
+        assert len(audio_channels), "No Audio Channel"
+        for aid, audio_channel in enumerate(audio_channels):
+            timeseries = TimeseriesModel(self._video.n_frames, audio_channel, -1, 1, f"Audio[{aid}] RAW")
+            self._annotations.append(timeseries)
+
+    def load_audio_rms(self):
+        audio_channels = extract_audio_rms_aligned_on_video_frames(
             self._video.path,
             False,
             self._video.fps,
@@ -158,15 +170,13 @@ class YavatModel(QObject):
         )
         assert len(audio_channels), "No Audio Channel"
         for aid, audio_channel in enumerate(audio_channels):
-            min_value = audio_channel.min()
             max_value = audio_channel.max()
-            audio_channel = (audio_channel - min_value) / (max_value - min_value + 1e-12)
             xy_values = enumerate(map(float, audio_channel))
-            timeseries = TimeseriesModel(self._video.n_frames, xy_values, 0, 1, f"Audio[{aid}]")
+            timeseries = TimeseriesModel(self._video.n_frames, xy_values, 0, max_value, f"Audio[{aid}] RMS")
             self._annotations.append(timeseries)
 
     def load_audio_db(self):
-        audio_channels = export_audio_rms_aligned_on_video_frames(
+        audio_channels = extract_audio_rms_aligned_on_video_frames(
             self._video.path,
             True,
             self._video.fps,
@@ -176,5 +186,5 @@ class YavatModel(QObject):
         for aid, audio_channel in enumerate(audio_channels):
             min_value = audio_channel.min()
             xy_values = enumerate(map(float, audio_channel))
-            timeseries = TimeseriesModel(self._video.n_frames, xy_values, int(min_value), 0, f"Audio[{aid}]")
+            timeseries = TimeseriesModel(self._video.n_frames, xy_values, int(min_value), 0, f"Audio[{aid}] DB")
             self._annotations.append(timeseries)

@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt, QPoint, QPointF, pyqtSignal
-from PyQt6.QtWidgets import QWidget, QGraphicsLineItem, QGraphicsView
+from PyQt6.QtWidgets import QWidget, QGraphicsView
 from PyQt6.QtGui import QColorConstants, QPen, QMouseEvent, QContextMenuEvent, QWheelEvent
 import pyqtgraph as pg
 from src.models.time_window import TimeWindowModel
@@ -27,18 +27,17 @@ class GraphView(pg.PlotWidget):
         self.showAxis('left', False)
         self.showAxis('bottom', False)
 
-        # add the time position line
-        self._position_line = QGraphicsLineItem(0, 0, 0, 1)
+        # add the time position line (in plot/data coordinates)
+        self._ymin = 0
+        self._ymax = 1
         pen = QPen(QColorConstants.Red)
         pen.setCosmetic(True)
         pen.setWidth(3)
-        self._position_line.setPen(pen)
+        self._position_line = pg.InfiniteLine(angle=90, movable=False, pen=pen)
         self._position_line.setZValue(10)
         self.addItem(self._position_line)
 
         time_window.window_changed.connect(self.onTimeWindowChanged)
-        self._ymin = 0
-        self._ymax = 1
 
     def _apply_time_window(self):
         self.onTimeWindowChanged(self._time_window.left, self._time_window.position, self._time_window.right)
@@ -46,11 +45,10 @@ class GraphView(pg.PlotWidget):
     def setYRange(self, ymin: float, ymax: float, padding: float=0.01):
         self._ymin = ymin
         self._ymax = ymax
-        self._position_line.setLine(self._time_window.position, ymin, self._time_window.position, ymax)
         self.plotItem.vb.setYRange(ymin, ymax, padding=padding)
 
     def onTimeWindowChanged(self, left: int, position: int, right: int):
-        self._position_line.setLine(position, self._ymin, position, self._ymax)
+        self._position_line.setPos(position)
         self.plotItem.vb.setXRange(left, right, padding=0.01)
 
     def showEvent(self, event):

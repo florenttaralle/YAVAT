@@ -24,7 +24,11 @@ class TimeseriesView(AnnotationView):
         return self._annotation
     
     def _set_value(self, value: float|None):
-        self._header._value_lbl.setText(str(round(value, 2) or "NaN") + " >")
+        if value is None:
+            value_str = "NaN"
+        else:
+            value_str = str(round(value, 2))
+        self._header._value_lbl.setText(f"{value_str} >")
     
     def onValueChanged(self, timeseries: TimeseriesModel, frame_id: int, value: float|None):
         self._set_value(value)
@@ -32,8 +36,9 @@ class TimeseriesView(AnnotationView):
     def onGraphContextMenu(self, frame_id: int, cm_event):
         AnnotationView.onGraphContextMenu(self, frame_id, cm_event)
         if (frame_id < 0) or (frame_id > self._time_window.duration): return
-        menu    = QMenu()
-        tw_menu = TimeWindowContextualMenu(self._time_window, frame_id).attach(menu)
+        tmp_menu = TimeWindowContextualMenu(self._time_window, frame_id)
+        menu = QMenu()
+        tmp_menu.attach(menu)
         menu.exec(QCursor.pos())
     
     def onGraphDoubleClick(self, frame_id: int, m_event):

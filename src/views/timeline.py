@@ -34,10 +34,12 @@ class TimelineView(AnnotationView):
     def onGraphContextMenu(self, frame_id: int, cm_event):
         AnnotationView.onGraphContextMenu(self, frame_id, cm_event)
         if (frame_id < 0) or (frame_id > self._time_window.duration): return
-        menu    = QMenu()
-        tw_menu = TimeWindowContextualMenu(self._time_window, frame_id).attach(menu)
+        time_menu = TimeWindowContextualMenu(self._time_window, frame_id)
+        timeline_menu = TimelineContextualMenu(self._time_window, self._annotation, frame_id)
+        menu = QMenu()
+        time_menu.attach(menu)
         menu.addSeparator()
-        tl_menu = TimelineContextualMenu(self._time_window, self._annotation, frame_id).attach(menu)
+        timeline_menu.attach(menu)
         menu.exec(QCursor.pos())
     
     def onGraphDoubleClick(self, frame_id: int, m_event):

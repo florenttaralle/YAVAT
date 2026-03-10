@@ -64,17 +64,6 @@ class YavatView(QMainWindow):
         self.act_use_as_template.setEnabled(False)
         self.act_save_template = file_menu.addAction(Icons.Save.icon(), "Save Template")
         self.act_save_template.triggered.connect(self.onActSaveTemplate)
-        
-        # TODO: make a dedicated import menu and disable/enalble it when a video is loaded
-        file_menu.addSeparator()
-        self.act_load_audio = file_menu.addAction(Icons.Load.icon(), "Import Audio")
-        self.act_load_audio.triggered.connect(self.onActImportAudio)
-        self.act_load_audio_db = file_menu.addAction(Icons.Load.icon(), "Import Audio DB")
-        self.act_load_audio_db.triggered.connect(self.onActImportAudioDb)
-        self.act_load_rttm = file_menu.addAction(Icons.Load.icon(), "Import from RTTM")
-        self.act_load_rttm.triggered.connect(self.onActImportRTTM)
-        self.act_load_whisperx = file_menu.addAction(Icons.Load.icon(), "Import from WisperX")
-        self.act_load_whisperx.triggered.connect(self.onActImportWisperX)
 
         file_menu.addSeparator()
         act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
@@ -86,6 +75,20 @@ class YavatView(QMainWindow):
         view_menu.addAction(annotations_dock.toggleViewAction())
         view_menu.addAction(values_grid_dock.toggleViewAction())
 
+        # add menu for annotations
+        self._annotations_menu = self.menuBar().addMenu("&Annotations")
+        self.act_load_audio_raw = self._annotations_menu.addAction(Icons.Load.icon(), "Import Audio Raw")
+        self.act_load_audio_raw.triggered.connect(self.onActImportAudioRaw)
+        self.act_load_audio_rms = self._annotations_menu.addAction(Icons.Load.icon(), "Import Audio Rms")
+        self.act_load_audio_rms.triggered.connect(self.onActImportAudioRms)
+        self.act_load_audio_db = self._annotations_menu.addAction(Icons.Load.icon(), "Import Audio DB")
+        self.act_load_audio_db.triggered.connect(self.onActImportAudioDb)
+        self._annotations_menu.addSeparator()        
+        self.act_load_rttm = self._annotations_menu.addAction(Icons.Load.icon(), "Import from RTTM")
+        self.act_load_rttm.triggered.connect(self.onActImportRTTM)
+        self.act_load_whisperx = self._annotations_menu.addAction(Icons.Load.icon(), "Import from WisperX")
+        self.act_load_whisperx.triggered.connect(self.onActImportWisperX)
+
         self.set_yavat(None)
         if path is not None:
             self._load(path)
@@ -94,15 +97,19 @@ class YavatView(QMainWindow):
             self._load_template(template_path)
 
     def set_yavat(self, yavat: YavatModel|None):
+        # disconnect previous yavat
         if self._yavat is not None:
             self._player_view.set_video(None)
             self._annotations_view.set_context(None, None)
             self._values_grid_view.set_context(None, None)
 
+        # store and connect new yavat
         self._yavat = yavat
         if yavat is not None:
             yavat.video.ready_changed.connect(self.onVideoReadyChanged)            
 
+        # update yavat-related states
+        self._annotations_menu.setEnabled(self._yavat is not None)
         self._act_save.setEnabled(self._yavat is not None)
         self._act_save_as.setEnabled(self._yavat is not None)
         self._act_import_ts.setEnabled(self._yavat is not None)
@@ -228,14 +235,21 @@ class YavatView(QMainWindow):
         except Exception as what:
             QMessageBox.warning(self, "Error importing from WhisperX", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
 
-    def onActImportAudio(self):
+    def onActImportAudioRaw(self):
         try:
-            self._yavat.load_audio()
+            self._yavat.load_audio_waveforms()
         except Exception as what:
-            QMessageBox.warning(self, "Error importing audio", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+            QMessageBox.warning(self, "Error importing audio Raw", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+
+    def onActImportAudioRms(self):
+        try:
+            self._yavat.load_audio_rms()
+        except Exception as what:
+            QMessageBox.warning(self, "Error importing audio RMS", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
 
     def onActImportAudioDb(self):
         try:
             self._yavat.load_audio_db()
         except Exception as what:
             QMessageBox.warning(self, "Error importing audio DB", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+
