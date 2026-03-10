@@ -30,7 +30,8 @@ class TimelineGraphView(GraphView):
 
         # initialize Y range
         self.setYRange(0, 1, 0)
-        
+        self._apply_time_window()
+
     def onTimelineColorChanged(self, color: QColor):
         pen = QPen(color)
         pen.setWidth(4)

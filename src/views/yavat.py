@@ -65,9 +65,14 @@ class YavatView(QMainWindow):
         self.act_save_template = file_menu.addAction(Icons.Save.icon(), "Save Template")
         self.act_save_template.triggered.connect(self.onActSaveTemplate)
         
+        # TODO: make a dedicated import menu and disable/enalble it when a video is loaded
         file_menu.addSeparator()
+        self.act_load_audio = file_menu.addAction(Icons.Load.icon(), "Import Audio")
+        self.act_load_audio.triggered.connect(self.onActImportAudio)
+        self.act_load_audio_db = file_menu.addAction(Icons.Load.icon(), "Import Audio DB")
+        self.act_load_audio_db.triggered.connect(self.onActImportAudioDb)
         self.act_load_rttm = file_menu.addAction(Icons.Load.icon(), "Import from RTTM")
-        self.act_load_rttm.triggered.connect(self.onActImportRTTM)        
+        self.act_load_rttm.triggered.connect(self.onActImportRTTM)
         self.act_load_whisperx = file_menu.addAction(Icons.Load.icon(), "Import from WisperX")
         self.act_load_whisperx.triggered.connect(self.onActImportWisperX)
 
@@ -222,3 +227,15 @@ class YavatView(QMainWindow):
             self._yavat.load_whisperx(filename)
         except Exception as what:
             QMessageBox.warning(self, "Error importing from WhisperX", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+
+    def onActImportAudio(self):
+        try:
+            self._yavat.load_audio()
+        except Exception as what:
+            QMessageBox.warning(self, "Error importing audio", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
+
+    def onActImportAudioDb(self):
+        try:
+            self._yavat.load_audio_db()
+        except Exception as what:
+            QMessageBox.warning(self, "Error importing audio DB", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)

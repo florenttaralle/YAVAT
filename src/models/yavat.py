@@ -1,14 +1,17 @@
 from __future__ import annotations
 import os, json, itertools as it
+import numpy as np
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from src.models.video import VideoModel, TimeWindowModel
 from src.models.timeline import TimelineModel, EventModel
+from src.models.timeseries import TimeseriesModel
 from src.models.annotation_list import AnnotationListModel
 from src.version import YAVAT_VERSION, VersionModel
 from src.models.external.rttm import RTTMModel, RTTMType
 from src.models.external.whisperx import WhisperXModel
+from src.models.external.audio_rms import export_audio_rms_aligned_on_video_frames
 
 class YavatModel(QObject):
     yavat_path_changed  = pyqtSignal(object)
@@ -108,11 +111,11 @@ class YavatModel(QObject):
         for speaker, entries in it.groupby(rttm.entries, key=lambda entry: entry.speaker_name):
             name = speaker if speaker not in existing_names else f"{speaker}_new"
             timeline = TimelineModel(self._video.n_frames, name)
-            for start_s, stop_s in entries:
-                first = self._video.to_frame_id(start_s)
-                last = self._video.to_frame_id(stop_s)
+            for entry in entries:
+                first = self._video.to_frame_id(entry.start_s)
+                last = self._video.to_frame_id(entry.stop_s)
                 if timeline.can_add(first, last):
-                    event = EventModel(first, last)
+                    event = EventModel(first, last, label="speaking")
                     timeline.add(event)
             self._annotations.append(timeline)
 
@@ -145,3 +148,33 @@ class YavatModel(QObject):
                     event = EventModel(first, last, label=segment.text)
                     timeline.add(event)
             self._annotations.append(timeline)
+
+    def load_audio(self):
+        audio_channels = export_audio_rms_aligned_on_video_frames(
+            self._video.path,
+            False,
+            self._video.fps,
+            self._video.n_frames,
+        )
+        assert len(audio_channels), "No Audio Channel"
+        for aid, audio_channel in enumerate(audio_channels):
+            min_value = audio_channel.min()
+            max_value = audio_channel.max()
+            audio_channel = (audio_channel - min_value) / (max_value - min_value + 1e-12)
+            xy_values = enumerate(map(float, audio_channel))
+            timeseries = TimeseriesModel(self._video.n_frames, xy_values, 0, 1, f"Audio[{aid}]")
+            self._annotations.append(timeseries)
+
+    def load_audio_db(self):
+        audio_channels = export_audio_rms_aligned_on_video_frames(
+            self._video.path,
+            True,
+            self._video.fps,
+            self._video.n_frames,
+        )
+        assert len(audio_channels), "No Audio Channel"
+        for aid, audio_channel in enumerate(audio_channels):
+            min_value = audio_channel.min()
+            xy_values = enumerate(map(float, audio_channel))
+            timeseries = TimeseriesModel(self._video.n_frames, xy_values, int(min_value), 0, f"Audio[{aid}]")
+            self._annotations.append(timeseries)

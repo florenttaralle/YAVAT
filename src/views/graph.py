@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, QPoint, QPointF, pyqtSignal, QRectF
+from PyQt6.QtCore import Qt, QPoint, QPointF, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QGraphicsLineItem, QGraphicsView
 from PyQt6.QtGui import QColorConstants, QPen, QMouseEvent, QContextMenuEvent, QWheelEvent
 import pyqtgraph as pg
@@ -21,7 +21,8 @@ class GraphView(pg.PlotWidget):
         self.setMenuEnabled(False)
         self.setMouseEnabled(x=False, y=False)
         self.hideButtons()
-        
+        self.enableAutoRange(axis='x', enable=False)
+        self.enableAutoRange(axis='y', enable=False)
         self.setBackgroundBrush(QColorConstants.Transparent)
         self.showAxis('left', False)
         self.showAxis('bottom', False)
@@ -36,15 +37,25 @@ class GraphView(pg.PlotWidget):
         self.addItem(self._position_line)
 
         time_window.window_changed.connect(self.onTimeWindowChanged)
-        self.onTimeWindowChanged(time_window.left, time_window.position, time_window.right)
+        self._ymin = 0
+        self._ymax = 1
+
+    def _apply_time_window(self):
+        self.onTimeWindowChanged(self._time_window.left, self._time_window.position, self._time_window.right)
 
     def setYRange(self, ymin: float, ymax: float, padding: float=0.01):
+        self._ymin = ymin
+        self._ymax = ymax
         self._position_line.setLine(self._time_window.position, ymin, self._time_window.position, ymax)
-        pg.ViewBox.setYRange(self, ymin, ymax, padding)
+        self.plotItem.vb.setYRange(ymin, ymax, padding=padding)
 
     def onTimeWindowChanged(self, left: int, position: int, right: int):
-        self._position_line.setX(position)
-        pg.ViewBox.setXRange(self, left, right, 0.01)
+        self._position_line.setLine(position, self._ymin, position, self._ymax)
+        self.plotItem.vb.setXRange(left, right, padding=0.01)
+
+    def showEvent(self, event):
+        pg.PlotWidget.showEvent(self, event)
+        self._apply_time_window()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         QGraphicsView.mouseDoubleClickEvent(self, event)
