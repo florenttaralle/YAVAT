@@ -157,7 +157,7 @@ class AnnotationTreeModel(QAbstractItemModel):
 
         if role == Qt.ItemDataRole.DecorationRole and index.column() == 0:
             if isinstance(item, AnnotationGroupModel):
-                return Icons.MenuV.icon()
+                return Icons.Group.icon()
             if isinstance(item, TimelineModel):
                 return Icons.Timeline.icon()
             if isinstance(item, TimeseriesModel):

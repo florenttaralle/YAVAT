@@ -1,14 +1,33 @@
 import os
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QKeySequence, QShortcut
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDockWidget
+from PyQt6.QtCore import QSize, Qt, QTimer
+from PyQt6.QtGui import QFont, QFontMetrics, QKeySequence, QShortcut
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDockWidget, QToolBar, QProxyStyle, QStyle
 
 from src.models.application_state import ApplicationStateModel, AppConfig, YavatModel
 from src.views.player import PlayerView
 from src.views.annotations import AnnotationTreeView
 from src.views.dialogs.annotation_color import exec_annotation_color_dialog
 from src.icons import Icons
+
+
+class _IconSizeProxyStyle(QProxyStyle):
+    def __init__(self, base_style):
+        QProxyStyle.__init__(self, base_style)
+        self._icon_side = 16
+
+    def set_icon_side(self, side: int):
+        self._icon_side = max(8, int(side))
+
+    def pixelMetric(self, metric, option=None, widget=None):
+        if metric in (
+            QStyle.PixelMetric.PM_SmallIconSize,
+            QStyle.PixelMetric.PM_ToolBarIconSize,
+            QStyle.PixelMetric.PM_ButtonIconSize,
+        ):
+            return self._icon_side
+        return QProxyStyle.pixelMetric(self, metric, option, widget)
+
 
 class YavatView(QMainWindow):
     VIDEO_EXT       = ["*.avi", "*.mp4"]
@@ -17,14 +36,13 @@ class YavatView(QMainWindow):
     def __init__(self, app_config: AppConfig, path: str|None=None):
         QMainWindow.__init__(self)
         self.state = ApplicationStateModel(app_config)
+        self._icon_style = None
         # build the gui
         self._player_view       = PlayerView()
         self._annotations_view  = AnnotationTreeView(self.state)
         self._player_view.muted_changed.connect(self._on_player_mute_changed)
         self._annotations_view.color_icon_clicked.connect(self._on_annotation_color_icon_clicked)
 
-        # set global font size from config
-        self._set_app_font_from_config()
         # set player mute from persisted config
         self._player_view.set_muted(self.state.config.mute)
         
@@ -41,14 +59,18 @@ class YavatView(QMainWindow):
 
         # add menu for save/load annotations
         file_menu = self.menuBar().addMenu("&File")
-        act_load = file_menu.addAction(Icons.Load.icon(), "Load")
-        act_load.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_O))
-        act_load.triggered.connect(self._on_act_load)
+        self._act_load = file_menu.addAction(Icons.Load.icon(), "Load")
+        self._act_load.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_O))
+        self._act_load.triggered.connect(self._on_act_load)
         # add menu to quit application
         file_menu.addSeparator()
-        act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
-        act_quit.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Q))
-        act_quit.triggered.connect(self.close)
+        self._act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
+        self._act_quit.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Q))
+        self._act_quit.triggered.connect(self.close)
+
+        # apply globaly icon size and font size
+        self._set_app_font_from_config()
+        QTimer.singleShot(0, self._set_app_font_from_config)
 
         # set global shortcuts        
         QShortcut(QKeySequence("Ctrl+Shift+="), self, activated=lambda: self._change_app_font(+1))
@@ -67,9 +89,30 @@ class YavatView(QMainWindow):
 
     def _set_app_font_from_config(self):
         app = QApplication.instance()
-        font = app.font()        
+        font = QFont(app.font())
         font.setPointSize(self.state.config.font_size)
+        # Apply style-driven icon metrics first; style changes can repolish fonts.
+        self._set_app_icon_size_from_font(font)
         app.setFont(font)
+        self.setFont(font)
+        self.menuBar().setFont(font)
+        self._player_view.setFont(font)
+        self._annotations_view.setFont(font)
+
+    def _set_app_icon_size_from_font(self, font=None):
+        if font is None:
+            font = QApplication.instance().font()
+        side = max(8, QFontMetrics(font).height() - 2)
+        icon_size = QSize(side, side)
+        app = QApplication.instance()
+        if self._icon_style is None:
+            self._icon_style = _IconSizeProxyStyle(app.style())
+        self._icon_style.set_icon_side(side)
+        app.setStyle(self._icon_style)
+        self.setIconSize(icon_size)
+        for toolbar in self.findChildren(QToolBar):
+            toolbar.setIconSize(icon_size)
+        self._annotations_view.setIconSize(icon_size)
 
     def _change_app_font(self, delta: int):
         self.state.config.font_size = max(self.state.config.MIN_FONT_SIZE, min(self.state.config.MAX_FONT_SIZE, self.state.config.font_size + delta))

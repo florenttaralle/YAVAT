@@ -10,7 +10,8 @@ class Icons(Enum):
     Close           = "close.png"
     Quit            = "quit.png"
 
-    ColorDelete     = "error.png"
+    Ok              = "ok.png"
+    Cancel          = "cancel.png"
 
     MenuV           = "menu_v.png"
     MenuH           = "menu_v.png"
@@ -41,6 +42,8 @@ class Icons(Enum):
     TimelineRem     = "timeline_rem.png"
 
     Timeseries      = "timeseries.png"
+    
+    Group           = "gruop.png"
     
     ArrowFromLeft   = "arrow_from_left.png"
     ArrowFromRight  = "arrow_from_right.png"

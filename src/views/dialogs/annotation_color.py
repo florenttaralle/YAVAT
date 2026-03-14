@@ -33,9 +33,9 @@ class AnnotationColorDialog(QColorDialog):
         self._apply_button = QPushButton("Apply", self)
         self._apply_recursive_button = QPushButton("Apply Recursive", self)
         # select button icons
-        self._cancel_button.setIcon(Icons.Close.icon())
-        self._apply_button.setIcon(Icons.MessageOk.icon())
-        self._apply_recursive_button.setIcon(Icons.MessageOk.icon())
+        self._cancel_button.setIcon(Icons.Cancel.icon())
+        self._apply_button.setIcon(Icons.Ok.icon())
+        self._apply_recursive_button.setIcon(Icons.Ok.icon())
         # set the recursive button only visible for group annotations
         self._apply_recursive_button.setVisible(isinstance(annotation, AnnotationGroupModel))
 
