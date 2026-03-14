@@ -1,136 +1,113 @@
-from PyQt6.QtCore import *
-from PyQt6.QtGui import *
-from PyQt6.QtWidgets import *
 import os
-from src.models.yavat import YavatModel
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeySequence, QShortcut
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDockWidget
+
+from src.models.application_state import ApplicationStateModel, AppConfig, YavatModel
 from src.views.player import PlayerView
-from src.views.annotation_list import AnnotationListView
-from src.views.dialogs.data_import import DataImportDialog
-from src.models.template import TemplateModel
-from src.views.values_grid import ValuesGridView
+from src.views.annotations import AnnotationTreeView
 from src.icons import Icons
 
 class YavatView(QMainWindow):
     VIDEO_EXT       = ["*.avi", "*.mp4"]
     YAVAT_EXT       = ["*.yavat", "*.yvt"]
-    TEMPLATE_EXT    = ["*.yavat_template", "*.yvtt"]
-    RTTM_EXT        = ["*.rttm"]
-    WHISPERX_EXT    = ["*.json"]
     
-    def __init__(self, path: str|None=None, template_path: str|None=None):
+    def __init__(self, app_config: AppConfig, path: str|None=None):
         QMainWindow.__init__(self)
-        self._yavat:            YavatModel|None = None
+        self.state = ApplicationStateModel(app_config)
+        # build the gui
         self._player_view       = PlayerView()
-        self._annotations_view  = AnnotationListView()
-        self._values_grid_view  = ValuesGridView()
-        self._template           = TemplateModel()
+        self._annotations_view  = AnnotationTreeView(self.state)
+        self._player_view.muted_changed.connect(self._on_player_mute_changed)
 
+        # set global font size from config
+        self._set_app_font_from_config()
+        # set player mute from persisted config
+        self._player_view.set_muted(self.state.config.mute)
+        
+        # build the GUI
         self.setWindowTitle("YAVAT - Yet Another Video Annotation Tool")
         self.setWindowIcon(Icons.Yavat.icon())
         self.setCentralWidget(self._player_view)
 
-        values_grid_dock = QDockWidget("Current Values", self)
-        values_grid_dock.setWidget(self._values_grid_view)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, values_grid_dock, Qt.Orientation.Vertical)
-
+        # build a dockable window for the annotaion tree
         annotations_dock = QDockWidget("Annotations", self)
         annotations_dock.setWidget(self._annotations_view)
         annotations_dock.setAllowedAreas(Qt.DockWidgetArea.AllDockWidgetAreas)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, annotations_dock, Qt.Orientation.Vertical)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, annotations_dock, Qt.Orientation.Horizontal)
 
         # add menu for save/load annotations
         file_menu = self.menuBar().addMenu("&File")
         act_load = file_menu.addAction(Icons.Load.icon(), "Load")
         act_load.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_O))
-        act_load.triggered.connect(self.onActLoad)
-        self._act_save = file_menu.addAction(Icons.Save.icon(), "Save Annotations")
-        self._act_save.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_S))
-        self._act_save.triggered.connect(self.onActSave)
-        self._act_save_as = file_menu.addAction(Icons.Save.icon(), "Save Annotations As")
-        self._act_save_as.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Modifier.SHIFT | Qt.Key.Key_S))
-        self._act_save_as.triggered.connect(self.onActSaveAs)
-        self._act_import_ts = file_menu.addAction(Icons.Import.icon(), "Import Annotations")
-        self._act_import_ts.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_I))
-        self._act_import_ts.triggered.connect(self.onActImportData)
-        self._act_close = file_menu.addAction(Icons.Close.icon(), "Close")
-        self._act_close.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_W))
-        self._act_close.triggered.connect(self.onActCloseFile)
+        act_load.triggered.connect(self._on_act_load)
 
-        file_menu.addSeparator()
-        self.act_load_template = file_menu.addAction(Icons.Load.icon(), "Load Template")
-        self.act_load_template.triggered.connect(self.onActLoadTemplate)
-        self.act_use_as_template = file_menu.addAction(Icons.Save.icon(), "Use as Template")
-        self.act_use_as_template.triggered.connect(self.onActUseAsTemplate)
-        self.act_use_as_template.setEnabled(False)
-        self.act_save_template = file_menu.addAction(Icons.Save.icon(), "Save Template")
-        self.act_save_template.triggered.connect(self.onActSaveTemplate)
+        # set global shortcuts        
+        QShortcut(QKeySequence("Ctrl+Shift+="), self, activated=lambda: self._change_app_font(+1))
+        QShortcut(QKeySequence("Ctrl+Shift+-"), self, activated=lambda: self._change_app_font(-1))
+        
+        # connect signals & slots
+        self.state.watched_active_annotation.changed.connect(self._on_active_annotation_changed)
+        self.state.watched_yavat.changed.connect(self._on_yavat_changed)
 
-        file_menu.addSeparator()
-        act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
-        act_quit.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Q))
-        act_quit.triggered.connect(self.close)
-
-        # add menu for views
-        view_menu = self.menuBar().addMenu("&View")
-        view_menu.addAction(annotations_dock.toggleViewAction())
-        view_menu.addAction(values_grid_dock.toggleViewAction())
-
-        # add menu for annotations
-        self._annotations_menu = self.menuBar().addMenu("&Annotations")
-        self.act_load_audio_raw = self._annotations_menu.addAction(Icons.Load.icon(), "Import Audio Raw")
-        self.act_load_audio_raw.triggered.connect(self.onActImportAudioRaw)
-        self.act_load_audio_rms = self._annotations_menu.addAction(Icons.Load.icon(), "Import Audio Rms")
-        self.act_load_audio_rms.triggered.connect(self.onActImportAudioRms)
-        self.act_load_audio_db = self._annotations_menu.addAction(Icons.Load.icon(), "Import Audio DB")
-        self.act_load_audio_db.triggered.connect(self.onActImportAudioDb)
-        self._annotations_menu.addSeparator()        
-        self.act_load_rttm = self._annotations_menu.addAction(Icons.Load.icon(), "Import from RTTM")
-        self.act_load_rttm.triggered.connect(self.onActImportRTTM)
-        self.act_load_whisperx = self._annotations_menu.addAction(Icons.Load.icon(), "Import from WisperX")
-        self.act_load_whisperx.triggered.connect(self.onActImportWisperX)
-
-        self.set_yavat(None)
+        # init main yavat object
+        self.state.set_yavat(None) # ensure proper initialization
+        # try to load if any path provided
         if path is not None:
             self._load(path)
-            
-        if template_path is not None:
-            self._load_template(template_path)
 
-    def set_yavat(self, yavat: YavatModel|None):
+
+    def _set_app_font_from_config(self):
+        app = QApplication.instance()
+        font = app.font()        
+        font.setPointSize(self.state.config.font_size)
+        app.setFont(font)
+
+    def _change_app_font(self, delta: int):
+        self.state.config.font_size = max(self.state.config.MIN_FONT_SIZE, min(self.state.config.MAX_FONT_SIZE, self.state.config.font_size + delta))
+        self.state.config.save()
+        self._set_app_font_from_config()
+        
+    def _on_active_annotation_changed(self, active_annotation):
+        if active_annotation is not None:
+            print(f"Item Selected: {active_annotation}")
+        else:
+            print("No More Item Selected")
+
+    def _on_player_mute_changed(self, muted: bool):
+        muted = bool(muted)
+        if muted != self.state.config.mute:
+            self.state.config.mute = muted
+            self.state.config.save()
+
+    def _on_yavat_changed(self, yavat: YavatModel|None):
         # disconnect previous yavat
-        if self._yavat is not None:
+        if self.state.yavat is not None:
             self._player_view.set_video(None)
-            self._annotations_view.set_context(None, None)
-            self._values_grid_view.set_context(None, None)
+            self.state.set_active_annotation(None)
+            self._annotations_view.set_annotations(None)
 
-        # store and connect new yavat
-        self._yavat = yavat
         if yavat is not None:
-            yavat.video.ready_changed.connect(self.onVideoReadyChanged)            
+            yavat.video.ready_changed.connect(self._on_video_ready_changed)
+            self._annotations_view.set_annotations(yavat.annotations)
 
-        # update yavat-related states
-        self._annotations_menu.setEnabled(self._yavat is not None)
-        self._act_save.setEnabled(self._yavat is not None)
-        self._act_save_as.setEnabled(self._yavat is not None)
-        self._act_import_ts.setEnabled(self._yavat is not None)
-        self._act_close.setEnabled(self._yavat is not None)
+    def _on_video_ready_changed(self, ready: bool):
+        self._player_view.set_video(self.state.yavat.video)
+        if self.state.yavat.video.valid and self.state.config.auto_play:
+            self.state.yavat.video.play()
 
-    def onVideoReadyChanged(self, ready: bool):
-        self._player_view.set_video(self._yavat.video)
-        self._annotations_view.set_context(self._yavat.time_window, self._yavat.annotations)
-        self._values_grid_view.set_context(self._yavat.time_window, self._yavat.annotations)
-        if self._yavat.video.valid:
-            self._yavat.video.play()
+    def _on_act_close_file(self):
+        self.state.set_yavat(None)
 
-    def onActCloseFile(self):
-        self.set_yavat(None)
-        self.act_use_as_template.setEnabled(False)
-
-    def onActLoad(self):
-        if self._yavat and self._yavat.yavat_path:
-            folder = os.path.dirname(self._yavat.yavat_path)
-        elif self._yavat:
-            folder = os.path.dirname(self._yavat.video.path)
+    def _on_act_load(self):
+        # look for file in current yavat folder if one available
+        if self.state.yavat and self.state.yavat.yavat_path:
+            # look for the yavat file first
+            folder = os.path.dirname(self.state.yavat.yavat_path)
+        elif self.state.yavat:
+            # look for the video file second
+            folder = os.path.dirname(self.state.yavat.video.path)
         else:
             folder = None
         
@@ -145,111 +122,11 @@ class YavatView(QMainWindow):
         if filename == '': return
         self._load(filename)
     
-    def onActSave(self):
-        if self._yavat.yavat_path:
-            self._save()
-        else:
-            self.onActSaveAs()
-        
-    def onActSaveAs(self):
-        default_path = self._yavat.yavat_path or \
-            self._yavat.default_path(self._yavat.video.path)
-        filename, _ = QFileDialog.getSaveFileName(None, 
-                                                  "Save YAVAT annotations",
-                                                  default_path,
-                                                  "YAVAT Annotations ({ext})".format(ext=" ".join(self.YAVAT_EXT)))
-        if filename == '': return
-        self._save(filename)
-
-    def _save(self, path: str|None=None):
-        try:
-            self._yavat.save(path)
-        except Exception as what:
-            QMessageBox.warning(self, "Error Saving", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-        
     def _load(self, path: str):
         try:
-            yavat = YavatModel.load(path)
-            self.act_use_as_template.setEnabled(True)
+            yavat = YavatModel.load(path, self.state.config.default_color)
         except Exception as what:
             QMessageBox.warning(self, "Error Loading", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-            yavat = None
-
-        if yavat is not None:
-            try:
-                self._template.update_annotations(yavat.annotations, True)
-            except Exception as what:
-                QMessageBox.warning(self, "Error Applying Template", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-
-        self.set_yavat(yavat)
-
-    def onActImportData(self):
-        DataImportDialog.import_from_file(self._yavat, self._template, self)
-    
-    def _load_template(self, path: str):
-        self._template = TemplateModel.load(path)
-        if self._yavat is not None:
-            self._template.update_annotations(self._yavat.annotations, True)
-
-    def onActLoadTemplate(self):
-        filename, _ = QFileDialog.getOpenFileName(None, 
-                                                  "Load YAVAT Template",
-                                                  self._template.path,
-                                                  "YAVAT Template ({ext})".format(ext=" ".join(self.TEMPLATE_EXT)))
-        if filename == '': return
-        self._load_template(filename)
-    
-    def onActUseAsTemplate(self):
-        if self._yavat is not None:
-            old_path = self._template.path
-            self._template = TemplateModel.from_annotations(self._yavat.annotations)
-            self._template.path = old_path
-
-    def onActSaveTemplate(self):
-        filename, _ = QFileDialog.getSaveFileName(None, 
-                                                  "Save YAVAT Template",
-                                                  self._template.path,
-                                                  "YAVAT Template ({ext})".format(ext=" ".join(self.TEMPLATE_EXT)))
-        if filename == '': return
-        self._template.save(filename)
-
-    def onActImportRTTM(self):
-        filename, _ = QFileDialog.getOpenFileName(None, 
-                                                  "Load RTTM Diarisation",
-                                                  self._template.path,
-                                                  "RTTM File ({ext})".format(ext=" ".join(self.RTTM_EXT)))
-        if filename == '': return
-        try:
-            self._yavat.load_rttm(filename)
-        except Exception as what:
-            QMessageBox.warning(self, "Error importing from RTTM", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-
-    def onActImportWisperX(self):
-        filename, _ = QFileDialog.getOpenFileName(None, 
-                                                  "Load WhisperX Diarisation",
-                                                  self._template.path,
-                                                  "RTTM File ({ext})".format(ext=" ".join(self.WHISPERX_EXT)))
-        if filename == '': return
-        try:
-            self._yavat.load_whisperx(filename)
-        except Exception as what:
-            QMessageBox.warning(self, "Error importing from WhisperX", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-
-    def onActImportAudioRaw(self):
-        try:
-            self._yavat.load_audio_waveforms()
-        except Exception as what:
-            QMessageBox.warning(self, "Error importing audio Raw", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-
-    def onActImportAudioRms(self):
-        try:
-            self._yavat.load_audio_rms()
-        except Exception as what:
-            QMessageBox.warning(self, "Error importing audio RMS", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-
-    def onActImportAudioDb(self):
-        try:
-            self._yavat.load_audio_db()
-        except Exception as what:
-            QMessageBox.warning(self, "Error importing audio DB", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
-
+            return
+        # update views with it
+        self.state.set_yavat(yavat)
