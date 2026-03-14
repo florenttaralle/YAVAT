@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox,
 from src.models.application_state import ApplicationStateModel, AppConfig, YavatModel
 from src.views.player import PlayerView
 from src.views.annotations import AnnotationTreeView
+from src.views.dialogs.annotation_color import exec_annotation_color_dialog
 from src.icons import Icons
 
 class YavatView(QMainWindow):
@@ -20,6 +21,7 @@ class YavatView(QMainWindow):
         self._player_view       = PlayerView()
         self._annotations_view  = AnnotationTreeView(self.state)
         self._player_view.muted_changed.connect(self._on_player_mute_changed)
+        self._annotations_view.color_icon_clicked.connect(self._on_annotation_color_icon_clicked)
 
         # set global font size from config
         self._set_app_font_from_config()
@@ -42,6 +44,11 @@ class YavatView(QMainWindow):
         act_load = file_menu.addAction(Icons.Load.icon(), "Load")
         act_load.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_O))
         act_load.triggered.connect(self._on_act_load)
+        # add menu to quit application
+        file_menu.addSeparator()
+        act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
+        act_quit.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Q))
+        act_quit.triggered.connect(self.close)
 
         # set global shortcuts        
         QShortcut(QKeySequence("Ctrl+Shift+="), self, activated=lambda: self._change_app_font(+1))
@@ -81,12 +88,28 @@ class YavatView(QMainWindow):
             self.state.config.mute = muted
             self.state.config.save()
 
+    def _on_annotation_color_icon_clicked(self, annotation):
+        video = self.state.yavat.video if self.state.yavat is not None else None
+        was_playing = bool(video is not None and video.valid and video.playing)
+        if was_playing:
+            video.pause()
+        try:
+            exec_annotation_color_dialog(
+                annotation,
+                self,
+                preferred_color=self.state.config.default_color,
+            )
+        finally:
+            if was_playing:
+                video.play()
+
     def _on_yavat_changed(self, yavat: YavatModel|None):
         # disconnect previous yavat
         if self.state.yavat is not None:
             self._player_view.set_video(None)
             self.state.set_active_annotation(None)
             self._annotations_view.set_annotations(None)
+            self.state.set_time_window(None)
 
         if yavat is not None:
             yavat.video.ready_changed.connect(self._on_video_ready_changed)
@@ -94,6 +117,7 @@ class YavatView(QMainWindow):
 
     def _on_video_ready_changed(self, ready: bool):
         self._player_view.set_video(self.state.yavat.video)
+        self.state.set_time_window(self.state.yavat.time_window)
         if self.state.yavat.video.valid and self.state.config.auto_play:
             self.state.yavat.video.play()
 

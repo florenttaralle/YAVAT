@@ -2,11 +2,92 @@ from __future__ import annotations
 
 import json
 
-from PyQt6.QtCore import QAbstractItemModel, QMimeData, QModelIndex, QItemSelectionModel, Qt
-from PyQt6.QtWidgets import QHeaderView, QTreeView, QWidget, QAbstractItemView
+from PyQt6.QtCore import QAbstractItemModel, QEvent, QMimeData, QModelIndex, QItemSelectionModel, QRect, QSize, Qt, pyqtSignal
+from PyQt6.QtGui import QPainter, QPen
+from PyQt6.QtWidgets import QHeaderView, QTreeView, QWidget, QAbstractItemView, QStyledItemDelegate, QStyleOptionViewItem
 
-from src.models.annotation import AnnotationModel, AnnotationGroupModel
+from src.models.annotation import AnnotationModel, AnnotationGroupModel, TimelineModel, TimeseriesModel
 from src.models.application_state import ApplicationStateModel
+from src.icons import Icons
+from .graph import graph_view_factory
+
+
+class AnnotationNameDelegate(QStyledItemDelegate):
+    color_icon_clicked = pyqtSignal(object)
+    "SIGNAL: color_icon_clicked(annotation: AnnotationModel)"
+
+    COLOR_BOX_MARGIN = 6
+
+    def _color_box_size(self, option: QStyleOptionViewItem) -> int:
+        # Keep the square tied to current row font size (reacts to global app font changes).
+        return max(8, option.fontMetrics.height() - 2)
+
+    def _text_rect(self, option: QStyleOptionViewItem) -> QRect:
+        # Keep editable text zone away from left icon and right color swatch.
+        color_box_size = self._color_box_size(option)
+        right_reserve = color_box_size + (2 * self.COLOR_BOX_MARGIN)
+
+        left_reserve = 0
+        if option.features & QStyleOptionViewItem.ViewItemFeature.HasDecoration:
+            left_reserve = option.decorationSize.width() + self.COLOR_BOX_MARGIN
+
+        rect = QRect(option.rect)
+        rect.adjust(left_reserve, 0, -right_reserve, 0)
+        return rect
+
+    def _color_rect(self, option: QStyleOptionViewItem) -> QRect:
+        color_box_size = self._color_box_size(option)
+        x = option.rect.right() - self.COLOR_BOX_MARGIN - color_box_size
+        y = option.rect.top() + (option.rect.height() - color_box_size) // 2
+        return QRect(x, y, color_box_size, color_box_size)
+
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
+        if index.column() != 0:
+            QStyledItemDelegate.paint(self, painter, option, index)
+            return
+
+        option_no_color = QStyleOptionViewItem(option)
+        color_box_size = self._color_box_size(option)
+        option_no_color.rect = self._text_rect(option)
+        QStyledItemDelegate.paint(self, painter, option_no_color, index)
+
+        item = index.internalPointer()
+        color = getattr(item, "color", None)
+        if color is None:
+            return
+
+        color_rect = self._color_rect(option)
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        painter.setPen(QPen(option.palette.mid().color()))
+        painter.setBrush(color)
+        painter.drawRect(color_rect)
+        painter.restore()
+
+    def editorEvent(self, event, model, option, index):
+        if index.column() != 0:
+            return QStyledItemDelegate.editorEvent(self, event, model, option, index)
+        if (
+            event.type() == QEvent.Type.MouseButtonPress
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            pos = event.position().toPoint()
+            if self._color_rect(option).contains(pos):
+                self.color_icon_clicked.emit(index.internalPointer())
+                return True
+        if event.type() == QEvent.Type.MouseButtonDblClick:
+            pos = event.position().toPoint()
+            if not self._text_rect(option).contains(pos):
+                # Consume double-click on icon/swatch zones to prevent edit.
+                return True
+        return QStyledItemDelegate.editorEvent(self, event, model, option, index)
+
+    def updateEditorGeometry(self, editor, option, index):
+        if index.column() == 0:
+            editor.setGeometry(self._text_rect(option))
+            return
+        QStyledItemDelegate.updateEditorGeometry(self, editor, option, index)
+
 
 class AnnotationTreeModel(QAbstractItemModel):
     MIME_TYPE = "application/x-yavat-annotation-tree-item"
@@ -67,13 +148,41 @@ class AnnotationTreeModel(QAbstractItemModel):
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
-        if role != Qt.ItemDataRole.DisplayRole:
-            return None
 
         item = index.internalPointer()
-        if index.column() == 0:
-            return item.name
-        return ""
+        if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
+            if index.column() == 0:
+                return item.name
+            return ""
+
+        if role == Qt.ItemDataRole.DecorationRole and index.column() == 0:
+            if isinstance(item, AnnotationGroupModel):
+                return Icons.MenuV.icon()
+            if isinstance(item, TimelineModel):
+                return Icons.Timeline.icon()
+            if isinstance(item, TimeseriesModel):
+                return Icons.Timeseries.icon()
+
+        return None
+
+    def setData(self, index: QModelIndex, value, role: int = Qt.ItemDataRole.EditRole):
+        if role != Qt.ItemDataRole.EditRole:
+            return False
+        if not index.isValid() or index.column() != 0:
+            return False
+        new_name = str(value).strip()
+        if not new_name:
+            return False
+        item = index.internalPointer()
+        if new_name == item.name:
+            return False
+        item.set_name(new_name)
+        self.dataChanged.emit(
+            index,
+            index,
+            [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole],
+        )
+        return True
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole):
         return None # nothing in column headers, but we want the header so we can resize first column
@@ -112,6 +221,8 @@ class AnnotationTreeModel(QAbstractItemModel):
         base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         if index.isValid():
             base |= Qt.ItemFlag.ItemIsDragEnabled # Drag -> move up/down
+            if index.column() == 0:
+                base |= Qt.ItemFlag.ItemIsEditable
             item = index.internalPointer()
             if isinstance(item, AnnotationGroupModel):
                 base |= Qt.ItemFlag.ItemIsDropEnabled # Drop -> put inside
@@ -265,15 +376,22 @@ class AnnotationTreeModel(QAbstractItemModel):
 
 
 class AnnotationTreeView(QTreeView):
+    color_icon_clicked = pyqtSignal(object)
+    "SIGNAL: color_icon_clicked(annotation: AnnotationModel)"
+
     def __init__(self, app_state: ApplicationStateModel, parent: QWidget | None = None):
         QTreeView.__init__(self, parent)
         self.app_state = app_state
         self._selection_sync_enabled = True
         self._selection_model: QItemSelectionModel | None = None
+        self._graph_views: dict[AnnotationModel, QWidget] = {}
         self.setRootIsDecorated(True)
         self.setAllColumnsShowFocus(True)
+        self._name_delegate = AnnotationNameDelegate(self)
+        self._name_delegate.color_icon_clicked.connect(self.onColorIconClicked)
+        self.setItemDelegateForColumn(0, self._name_delegate)
+        self._update_icon_size_from_font()
         self._configure_columns()
-        self._set_active_annotation(app_state.active_annotation)
 
         # allow item draw/drop
         self.setDragEnabled(True)
@@ -281,11 +399,28 @@ class AnnotationTreeView(QTreeView):
         self.setDropIndicatorShown(True)
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.setEditTriggers(
+            QAbstractItemView.EditTrigger.DoubleClicked
+            | QAbstractItemView.EditTrigger.EditKeyPressed
+        )
 
         # set header height to minimum
         header = self.header()
         header.setFixedHeight(10)  # pick the height you want
         header.setStyleSheet("QHeaderView::section { padding: 0px; }")
+
+        self.app_state.watched_active_annotation.changed.connect(self.onActiveAnnotationChanged)
+        self.app_state.watched_time_window.changed.connect(self.onTimeWindowChanged)
+
+    def _update_icon_size_from_font(self):
+        side = max(8, self.fontMetrics().height() - 2)
+        self.setIconSize(QSize(side, side))
+
+    def changeEvent(self, event):
+        QTreeView.changeEvent(self, event)
+        if event.type() == QEvent.Type.FontChange:
+            self._update_icon_size_from_font()
+            self.viewport().update()
 
     def _configure_columns(self):
         header = self.header()
@@ -295,6 +430,7 @@ class AnnotationTreeView(QTreeView):
         self.setColumnWidth(0, 260)
 
     def set_annotations(self, annotations: AnnotationGroupModel|None):
+        self._clear_graph_views()
         if annotations is not None:
             model = AnnotationTreeModel(annotations, self)
         else:
@@ -309,18 +445,11 @@ class AnnotationTreeView(QTreeView):
             model.rowsMoved.connect(self.onRowsMoved)
         self._configure_columns()
         self.expandAll()
-        self._sync_selection_with_active_item()
-
-    def _set_active_annotation(self, active_annotation: AnnotationModel | None):
-        if self.app_state.active_annotation is not None:
-            self.app_state.watched_active_annotation.changed.disconnect(self.onActiveAnnotationChanged)
-        self.app_state.set_active_annotation(active_annotation)
-        if active_annotation is not None:
-            self.app_state.watched_active_annotation.changed.connect(self.onActiveAnnotationChanged)
+        self._refresh_graph_widgets()
         self._sync_selection_with_active_item()
 
     def onCurrentChanged(self, current: QModelIndex, previous: QModelIndex):
-        if (not self._selection_sync_enabled) or (self.self.app_state.active_annotation is None):
+        if not self._selection_sync_enabled:
             return
         model = self.model()
         if model is None:
@@ -332,11 +461,16 @@ class AnnotationTreeView(QTreeView):
         self._sync_selection_with_active_item(item)
 
     def onRowsMoved(self, *args):
+        self._refresh_graph_widgets()
         self._sync_selection_with_active_item()
 
+    def onTimeWindowChanged(self, time_window):
+        self._refresh_graph_widgets()
+
+    def onColorIconClicked(self, annotation: AnnotationModel):
+        self.color_icon_clicked.emit(annotation)
+
     def _sync_selection_with_active_item(self, item: AnnotationModel | None = None):
-        if self.app_state.active_annotation is None:
-            return
         model = self.model()
         if model is None:
             return
@@ -365,3 +499,45 @@ class AnnotationTreeView(QTreeView):
             self.scrollTo(index)
         finally:
             self._selection_sync_enabled = True
+
+    def _clear_graph_views(self):
+        for graph_view in self._graph_views.values():
+            graph_view.setParent(None)
+            graph_view.deleteLater()
+        self._graph_views.clear()
+
+    def _refresh_graph_widgets(self):
+        model = self.model()
+        time_window = self.app_state.time_window
+        if model is None:
+            self._clear_graph_views()
+            return
+        if time_window is None:
+            self._clear_graph_views()
+            return
+
+        valid_annotations: set[AnnotationModel] = set()
+
+        def recurse(parent: QModelIndex):
+            for row in range(model.rowCount(parent)):
+                idx0 = model.index(row, 0, parent)
+                idx1 = model.index(row, 1, parent)
+                item = model.item_for_index(idx0)
+                valid_annotations.add(item)
+                graph_view = self._graph_views.get(item)
+                if graph_view is None:
+                    graph_view = graph_view_factory(item, time_window, self)
+                    if graph_view is not None:
+                        self._graph_views[item] = graph_view
+                if graph_view is not None:
+                    graph_view.setMinimumHeight(self.app_state.config.annotation_graph_height)
+                    self.setIndexWidget(idx1, graph_view)
+                recurse(idx0)
+
+        recurse(QModelIndex())
+
+        stale = [annotation for annotation in self._graph_views if annotation not in valid_annotations]
+        for annotation in stale:
+            graph_view = self._graph_views.pop(annotation)
+            graph_view.setParent(None)
+            graph_view.deleteLater()

@@ -1,4 +1,4 @@
 from .graph import GraphView
-from .timeline_graph import TimelineGraphView
-from .timeseries_graph import TimeseriesGraphView
-
+from .timeline import TimelineGraphView
+from .timeseries import TimeseriesGraphView
+from .factory import graph_view_factory
