@@ -2,14 +2,14 @@ import os
 
 from PyQt6.QtCore import QSize, Qt, QTimer
 from PyQt6.QtGui import QFont, QFontMetrics, QKeySequence, QShortcut
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDockWidget, QToolBar, QProxyStyle, QStyle
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDockWidget, QToolBar, QProxyStyle, QStyle, QColorDialog, QInputDialog
 
 from src.models.application_state import ApplicationStateModel, AppConfig, YavatModel
 from src.views.player import PlayerView
 from src.views.annotations import AnnotationTreeView
 from src.views.dialogs.annotation_color import exec_annotation_color_dialog
 from src.icons import Icons
-
+from . import menus
 
 class _IconSizeProxyStyle(QProxyStyle):
     def __init__(self, base_style):
@@ -57,24 +57,29 @@ class YavatView(QMainWindow):
         annotations_dock.setAllowedAreas(Qt.DockWidgetArea.AllDockWidgetAreas)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, annotations_dock, Qt.Orientation.Horizontal)
 
-        # add menu for save/load annotations
-        file_menu = self.menuBar().addMenu("&File")
-        self._act_load = file_menu.addAction(Icons.Load.icon(), "Load")
-        self._act_load.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_O))
-        self._act_load.triggered.connect(self._on_act_load)
-        # add menu to quit application
-        file_menu.addSeparator()
-        self._act_quit = file_menu.addAction(Icons.Quit.icon(), "Quit")
-        self._act_quit.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Q))
-        self._act_quit.triggered.connect(self.close)
-
+        # add file menu
+        self._file_menu = menus.FileMenu()
+        self._file_menu.on_load.connect(self._on_act_load)
+        self._file_menu.on_quit.connect(self.close)
+        self.menuBar().addMenu(self._file_menu)
+        # add config menu
+        self._config_menu = menus.ConfigMenu()
+        self._config_menu.set_auto_play(self.state.config.auto_play)
+        self._config_menu.set_default_color(self.state.config.default_color)
+        self._config_menu.on_text_bigger.connect(lambda: self._change_app_font(+1))
+        self._config_menu.on_text_smaller.connect(lambda: self._change_app_font(-1))
+        self._config_menu.on_graph_height.connect(self._on_graph_height)
+        self._config_menu.on_auto_play.connect(self._on_auto_play_changed)
+        self._config_menu.on_default_color.connect(self._on_default_color_changed)
+        self.menuBar().addMenu(self._config_menu)
+        
         # apply globaly icon size and font size
         self._set_app_font_from_config()
         QTimer.singleShot(0, self._set_app_font_from_config)
 
-        # set global shortcuts        
-        QShortcut(QKeySequence("Ctrl+Shift+="), self, activated=lambda: self._change_app_font(+1))
-        QShortcut(QKeySequence("Ctrl+Shift+-"), self, activated=lambda: self._change_app_font(-1))
+        # # set global shortcuts        
+        # QShortcut(QKeySequence("Ctrl+Shift+="), self, activated=lambda: self._change_app_font(+1))
+        # QShortcut(QKeySequence("Ctrl+Shift+-"), self, activated=lambda: self._change_app_font(-1))
         
         # connect signals & slots
         self.state.watched_active_annotation.changed.connect(self._on_active_annotation_changed)
@@ -113,6 +118,7 @@ class YavatView(QMainWindow):
         for toolbar in self.findChildren(QToolBar):
             toolbar.setIconSize(icon_size)
         self._annotations_view.setIconSize(icon_size)
+        self._config_menu.set_default_color(self.state.config.default_color)
 
     def _change_app_font(self, delta: int):
         self.state.config.font_size = max(self.state.config.MIN_FONT_SIZE, min(self.state.config.MAX_FONT_SIZE, self.state.config.font_size + delta))
@@ -125,11 +131,45 @@ class YavatView(QMainWindow):
         else:
             print("No More Item Selected")
 
+    def _on_graph_height(self):
+        value, ok = QInputDialog.getInt(
+            self,
+            "Graphs min height",
+            "Minimum graph height:",
+            self.state.config.annotation_graph_height,
+            0,
+            10_000,
+            1,
+        )
+        if not ok:
+            return
+        if value == self.state.config.annotation_graph_height:
+            return
+        self.state.config.annotation_graph_height = value
+        self.state.config.save()
+        self._annotations_view.onTimeWindowChanged(self.state.time_window)
+
     def _on_player_mute_changed(self, muted: bool):
         muted = bool(muted)
         if muted != self.state.config.mute:
             self.state.config.mute = muted
             self.state.config.save()
+
+    def _on_auto_play_changed(self, auto_play: bool):
+        auto_play = bool(auto_play)
+        if auto_play != self.state.config.auto_play:
+            self.state.config.auto_play = auto_play
+            self.state.config.save()
+
+    def _on_default_color_changed(self):
+        color = QColorDialog.getColor(self.state.config.default_color, self, "Default annotation color")
+        if not color.isValid():
+            return
+        if color == self.state.config.default_color:
+            return
+        self.state.config.default_color = color
+        self.state.config.save()
+        self._config_menu.set_default_color(color)
 
     def _on_annotation_color_icon_clicked(self, annotation):
         video = self.state.yavat.video if self.state.yavat is not None else None

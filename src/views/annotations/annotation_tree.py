@@ -531,6 +531,12 @@ class AnnotationTreeView(QTreeView):
                         self._graph_views[item] = graph_view
                 if graph_view is not None:
                     graph_view.setMinimumHeight(self.app_state.config.annotation_graph_height)
+                    target_height = max(
+                        self.app_state.config.annotation_graph_height,
+                        graph_view.minimumSizeHint().height(),
+                    )
+                    graph_view.resize(graph_view.width(), target_height)
+                    graph_view.updateGeometry()
                     self.setIndexWidget(idx1, graph_view)
                 recurse(idx0)
 
@@ -541,3 +547,7 @@ class AnnotationTreeView(QTreeView):
             graph_view = self._graph_views.pop(annotation)
             graph_view.setParent(None)
             graph_view.deleteLater()
+
+        # Force row geometry recomputation after graph widget height updates.
+        self.doItemsLayout()
+        self.viewport().update()
