@@ -1,7 +1,7 @@
 import os
 
 from PyQt6.QtCore import QSize, Qt, QTimer
-from PyQt6.QtGui import QFont, QFontMetrics, QKeySequence, QShortcut
+from PyQt6.QtGui import QCloseEvent, QFont, QFontMetrics, QKeySequence, QShortcut
 from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDockWidget, QToolBar, QProxyStyle, QStyle, QColorDialog, QInputDialog
 
 from src.models.application_state import ApplicationStateModel, AppConfig, YavatModel
@@ -45,6 +45,9 @@ class YavatView(QMainWindow):
 
         # set player mute from persisted config
         self._player_view.set_muted(self.state.config.mute)
+
+        # add a callback to update IHM with yavat status
+        self.state.watched_yavat.changed.connect(self._on_yavat_changed)
         
         # build the GUI
         self.setWindowTitle("YAVAT - Yet Another Video Annotation Tool")
@@ -60,7 +63,8 @@ class YavatView(QMainWindow):
         # add file menu
         self._file_menu = menus.FileMenu()
         self._file_menu.on_load.connect(self._on_act_load)
-        self._file_menu.on_quit.connect(self.close)
+        self._file_menu.on_save.connect(self._save)
+        self._file_menu.on_quit.connect(self.close) # self.close will call the onCloseEvent
         self.menuBar().addMenu(self._file_menu)
         # add config menu
         self._config_menu = menus.ConfigMenu()
@@ -77,10 +81,6 @@ class YavatView(QMainWindow):
         self._set_app_font_from_config()
         QTimer.singleShot(0, self._set_app_font_from_config)
 
-        # # set global shortcuts        
-        # QShortcut(QKeySequence("Ctrl+Shift+="), self, activated=lambda: self._change_app_font(+1))
-        # QShortcut(QKeySequence("Ctrl+Shift+-"), self, activated=lambda: self._change_app_font(-1))
-        
         # connect signals & slots
         self.state.watched_active_annotation.changed.connect(self._on_active_annotation_changed)
         self.state.watched_yavat.changed.connect(self._on_yavat_changed)
@@ -91,6 +91,8 @@ class YavatView(QMainWindow):
         if path is not None:
             self._load(path)
 
+    def _on_yavat_changed(self, yavat: YavatModel|None):
+        self._file_menu.set_can_save(yavat is not None)
 
     def _set_app_font_from_config(self):
         app = QApplication.instance()
@@ -138,7 +140,7 @@ class YavatView(QMainWindow):
             "Minimum graph height:",
             self.state.config.annotation_graph_height,
             0,
-            10_000,
+            500,
             1,
         )
         if not ok:
@@ -206,8 +208,34 @@ class YavatView(QMainWindow):
 
     def _on_act_close_file(self):
         self.state.set_yavat(None)
+        self.state.yavat_hash = None
+
+    def _yavat_not_saved(self) -> bool:
+        if self.state.yavat is None:
+            return False
+        _, json_hash = self.state.yavat.serialize()
+        return self.state.yavat_hash != json_hash        
+
+    def _on_act_quit(self):
+        if self._yavat_not_saved():
+            if self._hask_and_save() == QMessageBox.StandardButton.Cancel:
+                return
+        self.close()
+
+    def closeEvent(self, event: QCloseEvent):
+        if self._yavat_not_saved():
+            if self._hask_and_save() == QMessageBox.StandardButton.Cancel:
+                event.ignore()
+                return
+        QMainWindow.closeEvent(self, event)
 
     def _on_act_load(self):
+        if self._yavat_not_saved():
+            if self._hask_and_save() == QMessageBox.StandardButton.Cancel:
+                return # user canceled
+            if not self._save():
+                return # user canceled (did not choose a file to save)
+        
         # look for file in current yavat folder if one available
         if self.state.yavat and self.state.yavat.yavat_path:
             # look for the yavat file first
@@ -231,9 +259,57 @@ class YavatView(QMainWindow):
     
     def _load(self, path: str):
         try:
-            yavat = YavatModel.load(path, self.state.config.default_color)
+            yavat, json_hash = YavatModel.load(path, self.state.config.default_color)
         except Exception as what:
             QMessageBox.warning(self, "Error Loading", str(what), QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.Ok)
             return
-        # update views with it
         self.state.set_yavat(yavat)
+        self.state.yavat_hash = json_hash
+
+    def _hask_and_save(self) -> QMessageBox.StandardButton:
+        result = QMessageBox.question(
+            self,
+            "Unsaved changes",
+            "Some current work has not been saved.\nDo you want to save before continuing?",
+            QMessageBox.StandardButton.Yes
+            | QMessageBox.StandardButton.No
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Yes,
+        )        
+        if result == QMessageBox.StandardButton.Yes:
+            saved = self._save()   
+            result = QMessageBox.StandardButton.Yes if saved else QMessageBox.StandardButton.Cancel
+        return result
+
+    def _save(self) -> bool:
+        if self.state.yavat is None:
+            return False
+
+        if self.state.yavat.yavat_path is None:
+            default_path = YavatModel.default_path(self.state.yavat.video.path)
+            filename, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save YAVAT annotations",
+                default_path,
+                "YAVAT Annotations ({ext})".format(ext=" ".join(self.YAVAT_EXT)),
+            )
+            if filename == "":
+                return False
+        else:
+            filename = None
+
+        try:
+            json_hash = self.state.yavat.save(filename)
+        except Exception as what:
+            QMessageBox.warning(
+                self,
+                "Error Saving",
+                str(what),
+                QMessageBox.StandardButton.Ok,
+                QMessageBox.StandardButton.Ok,
+            )
+            return False
+
+        self.state.yavat_hash = json_hash
+        return True
+    

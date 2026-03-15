@@ -34,7 +34,7 @@ class TimelineModel(AnnotationModel):
     @classmethod
     def parse(cls, duration: int, name: str, color: str, events, colors):
         events = [EventModel.parse(**event) for event in events]
-        colors = ColorListModel.parse(**colors)
+        colors = ColorListModel.parse(colors)
         return cls(duration, name, color, events, colors)
 
     def __len__(self) -> int:

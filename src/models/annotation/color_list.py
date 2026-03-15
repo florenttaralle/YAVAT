@@ -35,6 +35,10 @@ class ColorListModel(QObject):
             name: (color.name() if color is not None else None)
             for name, color in self._colors.items()
         }
+
+    @classmethod
+    def parse(cls, data):
+        return cls(**data)
     
     def update(self, colors: dict[str, QColor|None]) -> ColorListModel:
         self._colors.update(colors)

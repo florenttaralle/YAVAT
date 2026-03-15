@@ -41,7 +41,7 @@ class VideoModel(QObject):
         else:
             self._player.setSource(QUrl.fromLocalFile(video_path))
 
-    def data(self):
+    def serialize(self):
         return {
             "video_filename":   os.path.basename(self._video_path),
             "duration_ms":      self.duration.msecsSinceStartOfDay(),

@@ -29,8 +29,12 @@ class EventModel(QObject):
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self._first} ; {self._last}] lbl:'{self._label}'>"
-    
-    def data(self):
+
+    @property
+    def timeline(self):
+        return self.parent()
+        
+    def serialize(self):
         data = {
             "first":    self._first,
             "last":     self._last,
@@ -41,14 +45,6 @@ class EventModel(QObject):
             data.update({"color": self._color.name()})
         return data
 
-    @property
-    def timeline(self):
-        return self.parent()
-    
-    @classmethod
-    def parse(cls, data):
-        return cls(**data)
-    
     @classmethod
     def parse(cls, data):
         return cls(**data)
